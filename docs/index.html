@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="de" data-theme="light" data-language="de">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f8fa">
+    <meta name="description" content="CommitJet bringt Git in die Menüleiste deines Macs. Committe gezielt, wechsle Branches und lass dir optional lokal Commit-Nachrichten vorschlagen." data-i18n-content="metaDescription">
+    <title>CommitJet — Gute Commits. Ohne Kontextwechsel.</title>
+    <link rel="icon" href="airplane-departure.png" type="image/png">
+    <link rel="stylesheet" href="styles.css">
+    <script src="script.js" defer></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="CommitJet Startseite" data-i18n-aria="brandLabel">
+        <img class="brand-mark" src="airplane-departure.png" alt="">
+        <span>CommitJet</span>
+      </a>
+      <nav class="main-nav" aria-label="Hauptnavigation" data-i18n-aria="navLabel">
+        <a href="#funktionen" data-i18n="navFeatures">Funktionen</a>
+        <a href="#ablauf" data-i18n="navHow">So geht’s</a>
+        <a href="#privacy" data-i18n="navPrivacy">Datenschutz</a>
+      </nav>
+      <div class="header-actions">
+        <div class="language-toggle" role="group" aria-label="Sprache auswählen" data-i18n-aria="languageLabel">
+          <button type="button" data-language-choice="de" aria-pressed="true">DE</button>
+          <button type="button" data-language-choice="en" aria-pressed="false">EN</button>
+        </div>
+        <button class="theme-toggle" type="button" aria-label="Farbschema wechseln" title="Hell- oder Dunkelmodus" data-i18n-aria="themeLabel" data-i18n-title="themeTitle">
+          <svg class="sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.2 15.2A8.6 8.6 0 0 1 8.8 3.8 8.8 8.8 0 1 0 20.2 15.2Z"/></svg>
+        </button>
+        <a class="button button-small button-dark header-download" href="https://github.com/dmo-code/CommitJet/releases/latest"><span data-i18n="downloadShort">Laden</span> <span aria-hidden="true">↓</span></a>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero section-wrap">
+        <div class="hero-copy">
+          <p class="eyebrow hero-eyebrow"><img class="hero-brand-mark" src="airplane-departure.png" alt="" aria-hidden="true"> <span data-i18n="heroEyebrow">Git für die Menüleiste deines Macs</span></p>
+          <h1><span data-i18n="heroTitle">Gute Commits.<br><span>Ohne Kontextwechsel.</span></span></h1>
+          <p class="hero-text" data-i18n="heroText">Git gehört in deinen Flow. CommitJet bringt Branches, Änderungen und Commits direkt in die Menüleiste — klar, schnell und ganz bei dir.</p>
+          <div class="hero-actions">
+            <a class="button button-dark" href="https://github.com/dmo-code/CommitJet/releases/latest"><span data-i18n="downloadMain">CommitJet laden</span> <span aria-hidden="true">↓</span></a>
+            <a class="text-link" href="#funktionen"><span data-i18n="explore">Entdecke, was drinsteckt</span> <span aria-hidden="true">↓</span></a>
+          </div>
+          <p class="requirements"><span data-i18n="requirements">Für macOS 13 oder neuer <span>·</span> Kostenlos und Open Source</span></p>
+        </div>
+
+        <div class="hero-visual" role="img" aria-label="Illustrative Vorschau der CommitJet Menüleisten-App" data-i18n-aria="previewLabel">
+          <div class="desktop-scene" aria-hidden="true">
+            <div class="desktop-editor"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
+            <div class="desktop-menubar"><span class="menu-symbol symbol-flight"><img src="airplane-departure.png" alt="" aria-hidden="true"></span><span class="menu-symbol symbol-branch">⑂</span><span class="menu-symbol symbol-loop">◉</span><span class="menu-divider"></span><span class="menu-label">MEM <b>28%</b></span><span class="menu-label">CPU <b>14%</b></span><span class="menu-label">GPU <b>22%</b></span><span class="menu-clock">10:42</span></div>
+          </div>
+          <div class="app-panel">
+            <div class="panel-header">
+              <span class="panel-folder" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 6.5a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-11Z"/></svg></span>
+              <div class="panel-repository"><strong>Northstar</strong><div class="panel-branch"><svg viewBox="0 0 16 16"><path d="M4 3v10m0-7c5 0 2-5 8-5m-3 9c0 3 3 3 3 3"/></svg><span>feature/sidebar</span><span class="branch-down"></span><span class="panel-separator">·</span><span data-i18n="changedCount">4 geänderte Dateien</span></div></div>
+              <div class="panel-header-actions"><span class="folder-add" aria-label="Repository auswählen"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/><path d="M16 3v6m-3-3h6"/></svg></span><span class="refresh-icon" aria-label="Status aktualisieren"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 1-2.2-5.5M20 4v6h-6"/></svg></span></div>
+            </div>
+            <div class="panel-rule"></div>
+            <div class="composer-row">
+              <div class="message-field"><span data-i18n="commitPlaceholder">Commit-Nachricht</span><i></i></div>
+              <div class="suggestion-control"><button type="button" aria-label="Commit-Nachricht mit Ollama erstellen"><span class="sparkle-mark">✧</span></button><small data-i18n="messageLength">Kurz</small></div>
+            </div>
+            <div class="files-header"><span class="disclosure-chevron"></span><svg viewBox="0 0 20 20"><path d="M7 3.5h7l4 4V16a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 6 16V5a1.5 1.5 0 0 1 1-1.5Z"/><path d="M14 3.5V8h4m-14 0H3.5A1.5 1.5 0 0 0 2 9.5v8A1.5 1.5 0 0 0 3.5 19H13"/></svg><span data-i18n="fileSelection">Dateien (4/4)</span></div>
+            <div class="selection-summary"><span data-i18n="selectedCount">4 von 4 ausgewählt</span><div><span data-i18n="selectAll">Alle</span><b>·</b><span data-i18n="selectNone">Keine</span></div></div>
+            <div class="staging-actions"><span data-i18n="stageSelected">Auswahl vormerken</span><span data-i18n="unstageSelected">Vormerkung aufheben</span></div>
+            <div class="change-groups">
+              <div class="change-group">
+                <div class="change-group-title"><span class="disclosure-chevron"></span><span data-i18n="stagedGroup">Gestagete Änderungen (2)</span></div>
+                <div class="changed-file"><span class="file-check">✓</span><span class="state-icon modified">／</span><div><strong>Sources/LibraryGrid.swift</strong><small data-i18n="fileModified">Geändert</small></div></div>
+                <div class="changed-file"><span class="file-check">✓</span><span class="state-icon added">＋</span><div><strong>Resources/EmptyState.json</strong><small data-i18n="fileAdded">Hinzugefügt</small></div></div>
+              </div>
+              <div class="change-group">
+                <div class="change-group-title"><span class="disclosure-chevron"></span><span data-i18n="changesGroup">Änderungen (2)</span></div>
+                <div class="changed-file"><span class="file-check">✓</span><span class="state-icon modified">／</span><div><strong>Sources/SidebarView.swift</strong><small data-i18n="fileModified">Geändert</small></div></div>
+                <div class="changed-file"><span class="file-check">✓</span><span class="state-icon added">＋</span><div><strong>Tests/NavigationTests.swift</strong><small data-i18n="fileAdded">Hinzugefügt</small></div></div>
+              </div>
+            </div>
+            <div class="panel-bottom">
+              <button class="sync-action" type="button" disabled><span class="sync-symbol">⟳</span><span data-i18n="syncUpToDate">Synchronisiert</span></button>
+              <button class="create-commit" type="button" disabled data-i18n="createCommit">Commit erstellen</button>
+              <div class="panel-footer"><span><i>⚙</i><span data-i18n="settings">Einstellungen</span></span><span><i>ⓘ</i><span data-i18n="help">Hilfe</span></span><span class="quit-action" data-i18n="quit">Beenden</span></div>
+            </div>
+          </div>
+          <p class="preview-caption" data-i18n="previewCaption">Illustrative Oberfläche. Beispieldaten.</p>
+        </div>
+      </section>
+
+      <section class="trust-strip section-wrap" aria-label="CommitJet Eigenschaften" data-i18n-aria="trustLabel">
+        <span><b>⌘</b> <span data-i18n="trustMenu">Direkt in der Menüleiste</span></span>
+        <span><b>◈</b> <span data-i18n="trustLocal">Lokal und privat</span></span>
+        <span><b>✳</b> <span data-i18n="trustAI">KI nur auf Wunsch</span></span>
+        <span><b>↗</b> <span data-i18n="trustOpen">Open Source</span></span>
+      </section>
+
+      <section class="feature-section section-wrap" id="funktionen">
+        <div class="section-heading">
+          <p class="eyebrow" data-i18n="featuresEyebrow">Weniger drumherum. Mehr Flow.</p>
+          <h2 data-i18n="featuresTitle">Alles fürs Committen.<br><span>Nichts, was ablenkt.</span></h2>
+          <p data-i18n="featuresIntro">CommitJet macht die häufigsten Git-Schritte greifbar — ohne ein weiteres Fenster, das offen bleiben muss.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card feature-large">
+            <div class="feature-copy"><span class="feature-index">01</span><h3 data-i18n="featureStageTitle">Geänderte Dateien auf einen Blick.</h3><p data-i18n="featureStageText">CommitJet zeigt Dateinamen und ihren Status. Wähle gezielt aus, welche Dateien du fürs Staging vormerken willst.</p></div>
+            <div class="mini-file-list" aria-label="Vorschau der Dateiliste" data-i18n-aria="fileListLabel">
+              <div class="mini-list-summary"><span class="mini-disclosure"></span><strong data-i18n="fileListHeading">Dateien (3/3)</strong></div>
+              <div class="mini-selection"><span data-i18n="miniSelected">3 von 3 ausgewählt</span><span><b data-i18n="miniAll">Alle</b><i>·</i><b data-i18n="miniNone">Keine</b></span></div>
+              <div class="mini-actions"><span data-i18n="miniStage">Auswahl vormerken</span><span data-i18n="miniUnstage">Vormerkung aufheben</span></div>
+              <div class="mini-group-title"><span class="mini-disclosure"></span><strong data-i18n="miniChanges">Änderungen (3)</strong></div>
+              <div class="mini-file-row"><span class="mini-check">✓</span><span class="mini-status modified">／</span><span class="mini-path">Sources/LibraryGrid.swift</span><small data-i18n="fileModified">Geändert</small></div>
+              <div class="mini-file-row"><span class="mini-check">✓</span><span class="mini-status added">＋</span><span class="mini-path">Resources/EmptyState.json</span><small data-i18n="fileAdded">Hinzugefügt</small></div>
+              <div class="mini-file-row"><span class="mini-check">✓</span><span class="mini-status added">＋</span><span class="mini-path">Tests/NavigationTests.swift</span><small data-i18n="fileAdded">Hinzugefügt</small></div>
+            </div>
+          </article>
+          <article class="feature-card feature-ai"><div class="feature-icon sparkle-icon">✳</div><span class="feature-index">02</span><h3 data-i18n="featureAITitle">Die Idee kommt von dir.<br>Der Vorschlag auch.</h3><p data-i18n="featureAIText">Optional schlägt Ollama eine Commit-Nachricht vor. Standardmäßig lokal — und du entscheidest, ob du den Text übernimmst.</p><div class="ai-settings"><span>Ollama</span><span class="settings-pill"><i></i> <span data-i18n="connected">Verbunden</span></span><span class="ai-host">localhost:11434</span></div></article>
+          <article class="feature-card feature-branch"><div class="branch-illustration"><span class="branch-line"></span><span class="branch-node n1"></span><span class="branch-node n2"></span><span class="branch-node n3"></span><span class="branch-node n4"></span><span class="branch-label">main</span><span class="branch-label label-feature">feature/cleanup</span></div><span class="feature-index">03</span><h3 data-i18n="featureBranchTitle">Branch wechseln.<br>Im Flow bleiben.</h3><p data-i18n="featureBranchText">Lokale Branches suchen und wechseln. CommitJet zeigt dir, wenn ungesicherte Änderungen einem Wechsel im Weg stehen.</p></article>
+        </div>
+      </section>
+
+      <section class="workflow-section" id="ablauf">
+        <div class="section-wrap workflow-inner">
+          <div class="workflow-copy"><p class="eyebrow" data-i18n="workflowEyebrow">So einfach ist der Ablauf</p><h2 data-i18n="workflowTitle">Von Änderung<br>zu Commit. <span>Weiter geht’s.</span></h2><p data-i18n="workflowText">Wähle ein Repository aus. Prüfe, was sich geändert hat. Committe — oder synchronisiere deinen Branch, wenn du bereit bist.</p><a class="text-link" href="https://github.com/dmo-code/CommitJet"><span data-i18n="githubLink">CommitJet auf GitHub ansehen</span> <span aria-hidden="true">↗</span></a></div>
+          <div class="steps">
+            <div class="step"><span class="step-icon">⌘</span><div><h3 data-i18n="step1Title">Repository auswählen</h3><p data-i18n="step1Text">Dein Projekt ist sofort griffbereit in der Menüleiste.</p></div><span class="step-number">01</span></div>
+            <div class="step"><span class="step-icon">☷</span><div><h3 data-i18n="step2Title">Änderungen prüfen</h3><p data-i18n="step2Text">Branch, Dateistatus und Staging-Bereich auf einen Blick.</p></div><span class="step-number">02</span></div>
+            <div class="step"><span class="step-icon">✓</span><div><h3 data-i18n="step3Title">Committen und weitermachen</h3><p data-i18n="step3Text">Ein guter Commit. Und zurück zu dem, was du gebaut hast.</p></div><span class="step-number">03</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="privacy-section section-wrap" id="privacy">
+        <div class="privacy-orb" aria-hidden="true"><span>◈</span></div>
+        <div class="privacy-copy"><p class="eyebrow" data-i18n="privacyEyebrow">Dein Code gehört dir.</p><h2 data-i18n="privacyTitle">Privat by design.</h2><p data-i18n="privacyText">CommitJet hat keine Konten, keine Telemetrie und keine Cloud-Anbindung. Git-Daten werden nicht automatisch hochgeladen. KI-Vorschläge sind optional und standardmäßig lokal.</p></div>
+        <div class="privacy-points"><span><i>✓</i> <span data-i18n="privacyPoint1">Kein Tracking</span></span><span><i>✓</i> <span data-i18n="privacyPoint2">Kein Konto nötig</span></span><span><i>✓</i> <span data-i18n="privacyPoint3">Ollama standardmäßig lokal</span></span></div>
+      </section>
+
+      <section class="download-section section-wrap">
+        <p class="eyebrow" data-i18n="downloadEyebrow">Dein nächster Commit wartet.</p>
+        <h2 data-i18n="downloadTitle">Mach’s dir einfach.</h2>
+        <p data-i18n="downloadText">Ein kleines Tool. Ein klarer Kopf. Und schon bist du wieder bei deiner Arbeit.</p>
+        <a class="button button-light" href="https://github.com/dmo-code/CommitJet/releases/latest"><span data-i18n="downloadMain">CommitJet laden</span> <span data-i18n="downloadMac">für macOS</span> <span aria-hidden="true">↓</span></a>
+        <span class="download-meta" data-i18n="downloadMeta">macOS 13 oder neuer · Kostenlos · Open Source</span>
+        <span class="download-note"><span data-i18n="downloadWarning">Beim ersten Öffnen kann macOS eine Warnung zeigen.</span> <a href="https://github.com/dmo-code/CommitJet#opening-the-downloaded-app" data-i18n="downloadHelp">Hier steht, wie du CommitJet öffnest.</a></span>
+      </section>
+    </main>
+
+    <footer class="site-footer section-wrap"><a class="brand footer-brand" href="#top"><img class="brand-mark" src="airplane-departure.png" alt=""><span>CommitJet</span></a><span data-i18n="footerLine">Gebaut für deinen Flow. Auf deinem Mac.</span><div class="footer-links"><a href="https://github.com/dmo-code/CommitJet">GitHub</a><a href="https://github.com/dmo-code/CommitJet/releases" data-i18n="footerReleases">Releases</a><a href="https://github.com/dmo-code/CommitJet/blob/main/LICENSE" data-i18n="footerLicense">MIT-Lizenz</a></div></footer>
+  </body>
+</html>

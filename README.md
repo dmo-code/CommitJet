@@ -2,6 +2,10 @@
 
 A small native macOS menu bar helper for making local Git commits. CommitJet can ask a local Ollama server to suggest a commit subject, but manual commits work without Ollama.
 
+## Product page
+
+The static product page lives in `docs/` and is ready for GitHub Pages. It is available in German and English, with the visitor's language choice saved in the browser. In the repository settings, choose **Settings → Pages → GitHub Actions** as the build and deployment source. The workflow in `.github/workflows/pages.yml` publishes updates from `main` whenever `docs/` changes. After the first successful deployment, the page will be available at <https://dmo-code.github.io/CommitJet/>. The page uses a mock app preview to illustrate the interface; its sample repository and commit text are illustrative.
+
 ## Requirements
 
 - macOS 13 or later
