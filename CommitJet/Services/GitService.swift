@@ -71,6 +71,48 @@ struct GitService {
         guard result.status == 0 else { throw GitError.command(errorText(result)) }
     }
 
+    func remoteSyncStatus(at url: URL) throws -> RemoteSyncStatus {
+        let root = try repositoryRoot(for: url)
+        let branchResult = try run(["symbolic-ref", "--quiet", "--short", "HEAD"], at: root)
+        guard branchResult.status == 0 else {
+            return RemoteSyncStatus(branch: "Detached HEAD", remoteName: nil, upstream: nil, hasCommit: false, aheadCount: 0, behindCount: 0)
+        }
+        let branch = String(decoding: branchResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        let headResult = try run(["rev-parse", "--verify", "HEAD"], at: root)
+        let hasCommit = headResult.status == 0
+        let remoteResult = try run(["remote"], at: root)
+        guard remoteResult.status == 0 else { throw GitError.command(errorText(remoteResult)) }
+        let remotes = String(decoding: remoteResult.stdout, as: UTF8.self).split(whereSeparator: \.isNewline).map(String.init)
+
+        let upstreamResult = try run(["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"], at: root)
+        guard upstreamResult.status == 0 else {
+            return RemoteSyncStatus(branch: branch, remoteName: remotes.first, upstream: nil, hasCommit: hasCommit, aheadCount: 0, behindCount: 0)
+        }
+        let upstream = String(decoding: upstreamResult.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        let remoteName = remotes.first(where: { upstream.hasPrefix($0 + "/") })
+        let countResult = try run(["rev-list", "--left-right", "--count", "\(upstream)...HEAD"], at: root)
+        guard countResult.status == 0 else { throw GitError.command(errorText(countResult)) }
+        let counts = String(decoding: countResult.stdout, as: UTF8.self).split(whereSeparator: \.isWhitespace).compactMap { Int($0) }
+        guard counts.count == 2 else { throw GitError.command("Der Remote-Status konnte nicht gelesen werden.") }
+        return RemoteSyncStatus(branch: branch, remoteName: remoteName, upstream: upstream, hasCommit: hasCommit, aheadCount: counts[1], behindCount: counts[0])
+    }
+
+    func push(at url: URL, syncStatus: RemoteSyncStatus) throws {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        guard let remote = syncStatus.remoteName else { throw GitError.command("Für dieses Repository ist kein Remote eingerichtet.") }
+        guard syncStatus.hasCommit else { throw GitError.noChanges }
+        guard syncStatus.behindCount == 0 else { throw GitError.command("Der lokale Branch liegt hinter dem Remote. Bitte hole die Remote-Änderungen zuerst mit deinem Git-Client.") }
+        guard syncStatus.aheadCount > 0 || syncStatus.upstream == nil else { return }
+        var environment = ProcessInfo.processInfo.environment
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        let arguments = syncStatus.upstream == nil
+            ? ["push", "--set-upstream", remote, syncStatus.branch]
+            : ["push"]
+        let result = try run(arguments, at: root, environment: environment)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
     func prepareDiff(at url: URL, files: [ChangedFile]) throws -> PreparedDiff {
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)

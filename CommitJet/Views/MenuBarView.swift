@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct MenuBarView: View {
     @ObservedObject var model: CommitViewModel
     @AppStorage("ollamaLanguage") private var language = "English"
+    @AppStorage("appearance") private var appearance = "system"
     @AppStorage("changeListHeightPercent") private var panelHeightPercent = 60.0
     @AppStorage("suppressOverwriteConfirmation") private var suppressOverwriteConfirmation = false
     @Environment(\.dismiss) private var dismissPopover
@@ -71,6 +72,30 @@ struct MenuBarView: View {
 
             StatusMessages(status: model.statusMessage, error: model.errorMessage)
 
+            if let sync = model.remoteSyncStatus, sync.hasRemote {
+                Button {
+                    Task { await model.synchronizeChanges() }
+                } label: {
+                    HStack(spacing: 8) {
+                        if model.isWorking { ProgressView().controlSize(.small) }
+                        else { Image(systemName: sync.behindCount > 0 ? "arrow.down.circle" : "arrow.triangle.2.circlepath") }
+                        Text(syncButtonTitle(sync))
+                        if sync.aheadCount > 0 {
+                            Text("\(sync.aheadCount) ↑")
+                                .font(.caption.weight(.semibold).monospacedDigit())
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .center)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.isWorking || !sync.hasCommit || sync.behindCount > 0 || (sync.aheadCount == 0 && sync.upstream != nil))
+                .help(sync.behindCount > 0
+                      ? t("This branch is behind its remote. Pull changes in your Git client first.", "Dieser Branch liegt hinter dem Remote. Hole die Änderungen zuerst mit deinem Git-Client.")
+                      : !sync.hasCommit
+                        ? t("Create a commit before publishing this branch", "Erstelle zuerst einen Commit, bevor du den Branch veröffentlichst")
+                        : t("Push local commits to the remote", "Lokale Commits zum Remote übertragen"))
+            }
+
             Button(action: confirmAndCommit) {
                 if model.isWorking { ProgressView().controlSize(.small).frame(maxWidth: .infinity) }
                 else { Text(t("Commit", "Commit erstellen")).frame(maxWidth: .infinity) }
@@ -104,6 +129,8 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 360, height: ui.panelHeight)
+        .background(Color(nsColor: .windowBackgroundColor))
+        .preferredColorScheme(preferredColorScheme)
         .onAppear {
             ui.updatePanelHeightForCurrentScreen(percent: panelHeightPercent)
             refreshRepository()
@@ -179,6 +206,27 @@ struct MenuBarView: View {
         guard let snapshot = model.snapshot else { return t("Loading status…", "Status wird geladen …") }
         let count = snapshot.changedFileCount
         return language == "German" ? "\(count) geänderte Dateien" : "\(count) changed \(count == 1 ? "file" : "files")"
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch appearance {
+        case "light": .light
+        case "dark": .dark
+        default: nil
+        }
+    }
+
+    private func syncButtonTitle(_ status: RemoteSyncStatus) -> String {
+        if status.behindCount > 0 {
+            return t("Remote changes need to be pulled", "Remote-Änderungen müssen erst geholt werden")
+        }
+        if status.upstream == nil {
+            return status.hasCommit ? t("Publish branch", "Branch veröffentlichen") : t("No commits to publish", "Keine Commits zum Veröffentlichen")
+        }
+        if status.aheadCount > 0 {
+            return t("Sync changes", "Änderungen synchronisieren")
+        }
+        return t("Up to date", "Synchronisiert")
     }
 
     private var filteredBranches: [String] {
@@ -318,15 +366,10 @@ private struct ChangeSummaryView: View {
                             Spacer(minLength: 0)
                         }
                         .font(.caption2)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(Color(red: 0, green: 0.48, blue: 1))
                     }
-                    .padding(9)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color(nsColor: .underPageBackgroundColor), in: RoundedRectangle(cornerRadius: 8))
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 8)
-                            .strokeBorder(Color(nsColor: .separatorColor).opacity(0.45), lineWidth: 1)
-                    }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 3)
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {

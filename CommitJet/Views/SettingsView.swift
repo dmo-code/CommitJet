@@ -6,6 +6,7 @@ struct SettingsView: View {
     @AppStorage("ollamaServer") private var server = "http://localhost:11434"
     @AppStorage("ollamaModel") private var selectedModel = ""
     @AppStorage("ollamaLanguage") private var language = "English"
+    @AppStorage("appearance") private var appearance = "system"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
     @AppStorage("changeListHeightPercent") private var panelHeightPercent = 60.0
     @StateObject private var ui = SettingsUIState()
@@ -22,6 +23,11 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             Form {
                 Section(t("General", "Allgemein")) {
+                    Picker(t("Appearance", "Erscheinungsbild"), selection: $appearance) {
+                        Text(t("System", "System")).tag("system")
+                        Text(t("Light", "Hell")).tag("light")
+                        Text(t("Dark", "Dunkel")).tag("dark")
+                    }
                     Toggle(t("Launch at login", "Beim Anmelden starten"), isOn: Binding(
                         get: { loginItemStatus == .enabled || loginItemStatus == .requiresApproval },
                         set: { setLaunchAtLogin($0) }
@@ -126,6 +132,7 @@ struct SettingsView: View {
         .padding(28)
         .frame(width: 560)
         .background(.regularMaterial)
+        .preferredColorScheme(preferredColorScheme)
         .task {
             refreshLoginItemStatus()
             await loadModels(silent: true)
@@ -164,6 +171,14 @@ struct SettingsView: View {
 
     private func t(_ english: String, _ german: String) -> String {
         AppLanguage.text(english, german, language: language)
+    }
+
+    private var preferredColorScheme: ColorScheme? {
+        switch appearance {
+        case "light": .light
+        case "dark": .dark
+        default: nil
+        }
     }
 
     private func resetHiddenConfirmations() {
@@ -208,10 +223,11 @@ final class SettingsWindowController {
     private var window: NSWindow?
 
     func showSettings() {
-        if let window {
+        if let window, window.isVisible {
             bringToFront(window)
             return
         }
+        window = nil
         let settingsWindow = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 620, height: 500),
             styleMask: [.titled, .closable, .miniaturizable],
@@ -266,8 +282,8 @@ private struct HelpView: View {
                 )
                 section(
                     "Create a commit", "Commit erstellen",
-                    "Select Commit to create a local Git commit from the selected files. Other files are left out, and your existing Git staging area is preserved. The first commit in each repository requires confirmation unless you choose Don't show again. CommitJet never pushes changes.",
-                    "Klicke auf Commit erstellen, um aus den ausgewählten Dateien einen lokalen Git-Commit anzulegen. Andere Dateien bleiben außen vor und deine bestehende Git-Staging-Auswahl bleibt erhalten. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig, außer du wählst Nicht wieder anzeigen. CommitJet pusht keine Änderungen."
+                    "Select files and use Stage selected or Unstage selected to manage the Git staging area. Commit creates a local commit from staged changes only. Use Sync changes to push local commits to a configured remote. If your branch is behind its remote, pull those changes with your Git client before pushing.",
+                    "Wähle Dateien aus und nutze Auswahl vormerken oder Vormerkung aufheben, um den Git-Stage zu verwalten. Commit erstellen übernimmt ausschließlich gestagete Änderungen. Über Änderungen synchronisieren pushst du lokale Commits zu einem eingerichteten Remote. Liegt dein Branch hinter dem Remote, hole die Änderungen vor dem Push mit deinem Git-Client."
                 )
                 section(
                     "Ollama and privacy", "Ollama und Datenschutz",

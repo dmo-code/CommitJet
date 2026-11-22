@@ -6,6 +6,7 @@ final class CommitViewModel: ObservableObject {
     @Published private(set) var repositoryURL: URL?
     @Published private(set) var snapshot: RepositorySnapshot?
     @Published private(set) var localBranches: [String] = []
+    @Published private(set) var remoteSyncStatus: RemoteSyncStatus?
     @Published private(set) var selectedFileIDs: Set<String> = []
     @Published var commitMessage = ""
     @Published private(set) var isWorking = false
@@ -39,11 +40,12 @@ final class CommitViewModel: ObservableObject {
             repositoryURL = root
             preferences.set(root.path, forKey: "repositoryPath")
             let result = try await Task.detached {
-                (snapshot: try self.git.snapshot(at: root), branches: try self.git.localBranches(at: root))
+                (snapshot: try self.git.snapshot(at: root), branches: try self.git.localBranches(at: root), sync: try self.git.remoteSyncStatus(at: root))
             }.value
             snapshot = result.snapshot
             updateSelection(for: result.snapshot)
             localBranches = result.branches
+            remoteSyncStatus = result.sync
             aiFingerprint = nil
             statusMessage = nil
             errorMessage = nil
@@ -56,11 +58,12 @@ final class CommitViewModel: ObservableObject {
         defer { isWorking = false }
         do {
             let result = try await Task.detached {
-                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL))
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
             }.value
             snapshot = result.snapshot
             updateSelection(for: result.snapshot)
             localBranches = result.branches
+            remoteSyncStatus = result.sync
         }
         catch { errorMessage = error.localizedDescription }
     }
@@ -77,11 +80,12 @@ final class CommitViewModel: ObservableObject {
                 aiFingerprint = nil
             }
             let result = try await Task.detached {
-                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL))
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
             }.value
             snapshot = result.snapshot
             updateSelection(for: result.snapshot)
             localBranches = result.branches
+            remoteSyncStatus = result.sync
             statusMessage = localized("Switched to \(branch)", "Zu \(branch) gewechselt")
         } catch { errorMessage = error.localizedDescription }
     }
@@ -126,6 +130,22 @@ final class CommitViewModel: ObservableObject {
             let refreshed = try await Task.detached { try self.git.snapshot(at: repositoryURL) }.value
             snapshot = refreshed
             updateSelection(for: refreshed)
+            remoteSyncStatus = try await Task.detached { try self.git.remoteSyncStatus(at: repositoryURL) }.value
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func synchronizeChanges() async {
+        guard let repositoryURL, let currentStatus = remoteSyncStatus,
+              currentStatus.hasRemote, currentStatus.behindCount == 0,
+              currentStatus.aheadCount > 0 || currentStatus.upstream == nil else { return }
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isWorking = false }
+        do {
+            try await Task.detached { try self.git.push(at: repositoryURL, syncStatus: currentStatus) }.value
+            remoteSyncStatus = try await Task.detached { try self.git.remoteSyncStatus(at: repositoryURL) }.value
+            statusMessage = localized("Changes pushed to remote", "Änderungen zum Remote übertragen")
         } catch { errorMessage = error.localizedDescription }
     }
 

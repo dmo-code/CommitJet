@@ -53,6 +53,17 @@ struct RepositorySnapshot: Equatable, Sendable {
     var hasChanges: Bool { !changedFiles.isEmpty }
 }
 
+struct RemoteSyncStatus: Equatable, Sendable {
+    let branch: String
+    let remoteName: String?
+    let upstream: String?
+    let hasCommit: Bool
+    let aheadCount: Int
+    let behindCount: Int
+
+    var hasRemote: Bool { remoteName != nil }
+}
+
 struct PreparedDiff: Sendable {
     let text: String
     let fingerprint: String
