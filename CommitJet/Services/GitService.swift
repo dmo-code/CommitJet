@@ -9,6 +9,7 @@ struct GitService {
         case operationInProgress(String)
         case changedSubmodule
         case noChanges
+        case noFilesSelected
         case changedDuringCommit
         case diffTooLarge
         case missingCommitMessage
@@ -21,6 +22,7 @@ struct GitService {
             case .operationInProgress(let operation): return "Im Repository läuft eine Git-Operation (\(operation)). Beende sie zuerst."
             case .changedSubmodule: return "Geänderte Submodule werden nicht automatisch übernommen. Bitte committe sie separat."
             case .noChanges: return "Es gibt keine nicht ignorierten Änderungen zum Committen."
+            case .noFilesSelected: return "Wähle mindestens eine Datei für den Commit aus."
             case .changedDuringCommit: return "Der Repository-Zustand hat sich seit der Diff-Analyse geändert. Bitte prüfe die Änderungen erneut."
             case .diffTooLarge: return "Der Diff ist zu groß für die lokale KI-Anfrage (maximal 150 KB)."
             case .missingCommitMessage: return "Gib eine Commit-Nachricht ein."
@@ -46,33 +48,46 @@ struct GitService {
         let hasConflicts = records.contains { $0.state == .conflicted }
         let hasSubmodule = try changedSubmodule(in: records, at: root)
         let files = records.map { record in
-            ChangedFile(path: record.path, oldPath: record.oldPath, state: record.state)
+            ChangedFile(path: record.path, oldPath: record.oldPath, state: record.state,
+                        isStaged: record.status.first.map { $0 != " " && $0 != "?" } ?? false,
+                        isUnstaged: (record.status.dropFirst().first.map { $0 != " " } ?? false) || record.status == "??")
         }
         return RepositorySnapshot(rootURL: root, branch: branch.isEmpty ? "Detached HEAD" : branch, changedFiles: files, hasMergeConflicts: hasConflicts, containsChangedSubmodule: hasSubmodule)
     }
 
-    func prepareDiff(at url: URL) throws -> PreparedDiff {
+    func localBranches(at url: URL) throws -> [String] {
+        let root = try repositoryRoot(for: url)
+        let result = try run(["for-each-ref", "--format=%(refname:short)", "refs/heads"], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+        return String(decoding: result.stdout, as: UTF8.self)
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
+    }
+
+    func switchBranch(at url: URL, to branch: String) throws {
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)
-        let temporaryDirectory = FileManager.default.temporaryDirectory.appendingPathComponent("CommitJet-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: temporaryDirectory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: temporaryDirectory) }
-        let index = temporaryDirectory.appendingPathComponent("index")
-        var env = ProcessInfo.processInfo.environment
-        env["GIT_INDEX_FILE"] = index.path
-        let head = try run(["rev-parse", "--verify", "HEAD"], at: root)
-        let initArgs = head.status == 0 ? ["read-tree", "HEAD"] : ["read-tree", "--empty"]
-        let initialized = try run(initArgs, at: root, environment: env)
-        guard initialized.status == 0 else { throw GitError.command(errorText(initialized)) }
-        let added = try run(["add", "-A"], at: root, environment: env)
-        if added.status != 0 {
-            let detail = errorText(added)
-            if detail.contains("does not have a commit checked out") || detail.contains("adding files failed") { throw GitError.changedSubmodule }
-            throw GitError.command(detail)
-        }
-        let staged = try run(["diff", "--cached", "--binary", "--no-ext-diff", "--no-renames"], at: root, environment: env)
+        let result = try run(["switch", branch], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    func prepareDiff(at url: URL, files: [ChangedFile]) throws -> PreparedDiff {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        guard !files.isEmpty else { throw GitError.noFilesSelected }
+        return try stagedDiffAtRoot(root)
+    }
+
+    func prepareStagedDiff(at url: URL) throws -> PreparedDiff {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        return try stagedDiffAtRoot(root)
+    }
+
+    private func stagedDiffAtRoot(_ root: URL) throws -> PreparedDiff {
+        let staged = try run(["diff", "--cached", "--binary", "--no-ext-diff", "--no-renames"], at: root)
         guard staged.status == 0 else { throw GitError.command(errorText(staged)) }
-        let raw = try run(["diff", "--cached", "--raw", "--no-renames"], at: root, environment: env)
+        let raw = try run(["diff", "--cached", "--raw", "--no-renames"], at: root)
         guard raw.status == 0 else { throw GitError.command(errorText(raw)) }
         if containsGitlink(raw.stdout) { throw GitError.changedSubmodule }
         guard !staged.stdout.isEmpty else { throw GitError.noChanges }
@@ -80,20 +95,58 @@ struct GitService {
         return PreparedDiff(text: String(decoding: staged.stdout, as: UTF8.self), fingerprint: Self.digest(staged.stdout))
     }
 
-    func commit(at url: URL, message: String, expectedFingerprint: String?) throws {
+    func prepareDiff(at url: URL) throws -> PreparedDiff {
+        try prepareDiff(at: url, files: snapshot(at: url).changedFiles)
+    }
+
+    func commit(at url: URL, message: String, files: [ChangedFile], expectedFingerprint: String?) throws {
         let cleanMessage = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanMessage.isEmpty else { throw GitError.missingCommitMessage }
+        guard !files.isEmpty else { throw GitError.noFilesSelected }
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)
-        let candidate = try prepareDiff(at: root)
-        if let expectedFingerprint, candidate.fingerprint != expectedFingerprint { throw GitError.changedDuringCommit }
-        let staged = try run(["add", "-A"], at: root)
-        guard staged.status == 0 else { throw GitError.command(errorText(staged)) }
         let actual = try run(["diff", "--cached", "--binary", "--no-ext-diff", "--no-renames"], at: root)
         guard actual.status == 0 else { throw GitError.command(errorText(actual)) }
-        guard Self.digest(actual.stdout) == candidate.fingerprint else { throw GitError.changedDuringCommit }
+        let raw = try run(["diff", "--cached", "--raw", "--no-renames"], at: root)
+        guard raw.status == 0 else { throw GitError.command(errorText(raw)) }
+        if containsGitlink(raw.stdout) { throw GitError.changedSubmodule }
+        guard !actual.stdout.isEmpty else { throw GitError.noChanges }
+        if let expectedFingerprint, Self.digest(actual.stdout) != expectedFingerprint { throw GitError.changedDuringCommit }
         let result = try run(["commit", "-m", cleanMessage], at: root)
         guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    func stage(at url: URL, files: [ChangedFile]) throws {
+        guard !files.isEmpty else { throw GitError.noFilesSelected }
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        let result = try run(["add", "-A", "--"] + pathspecs(for: files), at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    func unstage(at url: URL, files: [ChangedFile]) throws {
+        guard !files.isEmpty else { throw GitError.noFilesSelected }
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        let paths = pathspecs(for: files)
+        let head = try run(["rev-parse", "--verify", "HEAD"], at: root)
+        let result = head.status == 0
+            ? try run(["reset", "-q", "HEAD", "--"] + paths, at: root)
+            : try run(["rm", "--cached", "-r", "--"] + paths, at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    func commit(at url: URL, message: String, expectedFingerprint: String?) throws {
+        try commit(at: url, message: message, files: snapshot(at: url).changedFiles, expectedFingerprint: expectedFingerprint)
+    }
+
+    private func pathspecs(for files: [ChangedFile]) -> [String] {
+        let paths = files.flatMap { file -> [String] in
+            var paths = [file.path]
+            if let oldPath = file.oldPath { paths.append(oldPath) }
+            return paths
+        }
+        return Array(Set(paths)).sorted().map { ":(literal)\($0)" }
     }
 
     private func validateOperationState(at root: URL) throws {

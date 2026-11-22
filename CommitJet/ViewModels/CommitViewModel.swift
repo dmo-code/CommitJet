@@ -5,6 +5,8 @@ import Combine
 final class CommitViewModel: ObservableObject {
     @Published private(set) var repositoryURL: URL?
     @Published private(set) var snapshot: RepositorySnapshot?
+    @Published private(set) var localBranches: [String] = []
+    @Published private(set) var selectedFileIDs: Set<String> = []
     @Published var commitMessage = ""
     @Published private(set) var isWorking = false
     @Published var statusMessage: String?
@@ -20,16 +22,28 @@ final class CommitViewModel: ObservableObject {
         }
     }
 
-    var canCommit: Bool { snapshot?.hasChanges == true && !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isWorking }
+    var selectedFiles: [ChangedFile] { snapshot?.changedFiles.filter { selectedFileIDs.contains($0.id) } ?? [] }
+    var hasSelectedChanges: Bool { !selectedFiles.isEmpty }
+    var hasStagedChanges: Bool { snapshot?.changedFiles.contains(where: \.isStaged) == true }
+    var canCommit: Bool { hasStagedChanges && !commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isWorking }
 
     func selectRepository(_ url: URL) async {
         isWorking = true
         defer { isWorking = false }
         do {
             let root = try await Task.detached { try self.git.repositoryRoot(for: url) }.value
+            if repositoryURL != root {
+                selectedFileIDs = []
+                knownFileIDs = []
+            }
             repositoryURL = root
             preferences.set(root.path, forKey: "repositoryPath")
-            snapshot = try await Task.detached { try self.git.snapshot(at: root) }.value
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: root), branches: try self.git.localBranches(at: root))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
             aiFingerprint = nil
             statusMessage = nil
             errorMessage = nil
@@ -40,17 +54,46 @@ final class CommitViewModel: ObservableObject {
         guard let repositoryURL else { return }
         isWorking = true
         defer { isWorking = false }
-        do { snapshot = try await Task.detached { try self.git.snapshot(at: repositoryURL) }.value }
+        do {
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
+        }
         catch { errorMessage = error.localizedDescription }
+    }
+
+    func switchBranch(to branch: String) async {
+        guard let repositoryURL, branch != snapshot?.branch else { return }
+        isWorking = true
+        statusMessage = nil
+        defer { isWorking = false }
+        do {
+            try await Task.detached { try self.git.switchBranch(at: repositoryURL, to: branch) }.value
+            if aiFingerprint != nil {
+                commitMessage = ""
+                aiFingerprint = nil
+            }
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
+            statusMessage = localized("Switched to \(branch)", "Zu \(branch) gewechselt")
+        } catch { errorMessage = error.localizedDescription }
     }
 
     func generateMessage() async {
         guard let repositoryURL else { return }
+        guard hasStagedChanges else { return }
         isWorking = true
         statusMessage = localized("Generating commit message…", "Commit-Nachricht wird erstellt …")
         defer { isWorking = false }
         do {
-            let diff = try await Task.detached { try self.git.prepareDiff(at: repositoryURL) }.value
+            let diff = try await Task.detached { try self.git.prepareStagedDiff(at: repositoryURL) }.value
             let server = preferences.string(forKey: "ollamaServer") ?? "http://localhost:11434"
             let model = preferences.string(forKey: "ollamaModel") ?? ""
             let language = preferences.string(forKey: "ollamaLanguage") ?? "English"
@@ -74,12 +117,57 @@ final class CommitViewModel: ObservableObject {
         defer { isWorking = false }
         let message = commitMessage
         let fingerprint = aiFingerprint
+        let files = snapshot?.changedFiles ?? []
         do {
-            try await Task.detached { try self.git.commit(at: repositoryURL, message: message, expectedFingerprint: fingerprint) }.value
+            try await Task.detached { try self.git.commit(at: repositoryURL, message: message, files: files, expectedFingerprint: fingerprint) }.value
             aiFingerprint = nil
             commitMessage = ""
             statusMessage = localized("Commit created", "Commit erstellt")
-            snapshot = try await Task.detached { try self.git.snapshot(at: repositoryURL) }.value
+            let refreshed = try await Task.detached { try self.git.snapshot(at: repositoryURL) }.value
+            snapshot = refreshed
+            updateSelection(for: refreshed)
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func toggleFileSelection(_ file: ChangedFile) {
+        if selectedFileIDs.contains(file.id) { selectedFileIDs.remove(file.id) }
+        else { selectedFileIDs.insert(file.id) }
+        invalidateGeneratedMessageIfNeeded()
+    }
+
+    func selectAllFiles() {
+        selectedFileIDs = Set(snapshot?.changedFiles.map(\.id) ?? [])
+        invalidateGeneratedMessageIfNeeded()
+    }
+
+    func deselectAllFiles() {
+        selectedFileIDs.removeAll()
+        invalidateGeneratedMessageIfNeeded()
+    }
+
+    func stageSelectedFiles() async { await updateStaging(stage: true) }
+    func unstageSelectedFiles() async { await updateStaging(stage: false) }
+
+    private func updateStaging(stage: Bool) async {
+        guard let repositoryURL, !selectedFiles.isEmpty else { return }
+        let files = selectedFiles
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isWorking = false }
+        do {
+            if stage {
+                try await Task.detached { try self.git.stage(at: repositoryURL, files: files) }.value
+            } else {
+                try await Task.detached { try self.git.unstage(at: repositoryURL, files: files) }.value
+            }
+            invalidateGeneratedMessageIfNeeded()
+            let refreshed = try await Task.detached { try self.git.snapshot(at: repositoryURL) }.value
+            snapshot = refreshed
+            updateSelection(for: refreshed)
+            statusMessage = stage
+                ? localized("Selected files staged", "Ausgewählte Dateien vorgemerkt")
+                : localized("Selected files unstaged", "Vormerkung ausgewählter Dateien aufgehoben")
         } catch { errorMessage = error.localizedDescription }
     }
 
@@ -92,6 +180,23 @@ final class CommitViewModel: ObservableObject {
     }
 
     private var requiresConfirmation: Bool { requiresFirstCommitConfirmation }
+
+    private var knownFileIDs: Set<String> = []
+
+    private func updateSelection(for snapshot: RepositorySnapshot) {
+        let currentIDs = Set(snapshot.changedFiles.map(\.id))
+        let previousSelection = selectedFileIDs
+        selectedFileIDs.formIntersection(currentIDs)
+        selectedFileIDs.formUnion(currentIDs.subtracting(knownFileIDs))
+        knownFileIDs = currentIDs
+        if previousSelection != selectedFileIDs { invalidateGeneratedMessageIfNeeded() }
+    }
+
+    private func invalidateGeneratedMessageIfNeeded() {
+        guard aiFingerprint != nil else { return }
+        aiFingerprint = nil
+        commitMessage = ""
+    }
 
     private func localized(_ english: String, _ german: String) -> String {
         AppLanguage.text(english, german, language: preferences.string(forKey: "ollamaLanguage") ?? "English")

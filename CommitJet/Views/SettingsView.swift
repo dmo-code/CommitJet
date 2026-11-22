@@ -7,6 +7,7 @@ struct SettingsView: View {
     @AppStorage("ollamaModel") private var selectedModel = ""
     @AppStorage("ollamaLanguage") private var language = "English"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
+    @AppStorage("changeListHeightPercent") private var panelHeightPercent = 60.0
     @StateObject private var ui = SettingsUIState()
     @State private var loginItemStatus = SMAppService.mainApp.status
     @State private var loginItemMessage: String?
@@ -41,6 +42,24 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                }
+                Section(t("Commit panel", "Commit-Panel")) {
+                    Text(t("Panel height", "Panelhöhe"))
+                    HStack(spacing: 10) {
+                        Slider(value: $panelHeightPercent, in: 45...85, step: 1)
+                            .accessibilityLabel(t("Panel height percentage", "Prozentuale Panelhöhe"))
+                        TextField(t("Percent", "Prozent"), value: $panelHeightPercent,
+                                  format: .number.precision(.fractionLength(0)))
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 64)
+                        Text("%")
+                            .foregroundStyle(.secondary)
+                    }
+                    Text(t("Sets the full panel height as a percentage of the usable display height. The file list uses the available space and scrolls when needed.", "Legt die gesamte Panelhöhe als Anteil der nutzbaren Monitorhöhe fest. Die Dateiliste nutzt den verfügbaren Platz und scrollt bei Bedarf."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Section(t("Ollama", "Ollama")) {
                     TextField(t("Server address", "Serveradresse"), text: $server)
@@ -114,6 +133,14 @@ struct SettingsView: View {
         .onChange(of: language) { value in
             SettingsWindowController.shared.updateTitle(language: value)
             HelpWindowController.shared.updateTitle(language: value)
+        }
+        .onAppear {
+            let clampedValue = min(max(panelHeightPercent.rounded(), 45), 85)
+            if panelHeightPercent != clampedValue { panelHeightPercent = clampedValue }
+        }
+        .onChange(of: panelHeightPercent) { value in
+            let clampedValue = min(max(value.rounded(), 45), 85)
+            if value != clampedValue { panelHeightPercent = clampedValue }
         }
     }
 
@@ -224,8 +251,13 @@ private struct HelpView: View {
 
                 section(
                     "Choose a repository", "Repository auswählen",
-                    "Select a local Git repository from the folder button. CommitJet shows its current branch and changed files.",
-                    "Wähle über die Ordnerschaltfläche ein lokales Git-Repository aus. CommitJet zeigt den aktuellen Branch und die geänderten Dateien."
+                    "Select a local Git repository from the folder button. CommitJet shows its current branch and changed files. Select the files to include; new changes are selected automatically.",
+                    "Wähle über die Ordnerschaltfläche ein lokales Git-Repository aus. CommitJet zeigt den aktuellen Branch und die geänderten Dateien. Wähle die Dateien für den Commit aus; neue Änderungen sind automatisch ausgewählt."
+                )
+                section(
+                    "Switch branches", "Branches wechseln",
+                    "Select the current branch name to search and switch between local branches. Git keeps compatible working-tree changes and blocks switches that would overwrite them.",
+                    "Klicke auf den aktuellen Branchnamen, um lokale Branches zu durchsuchen und zu wechseln. Git übernimmt passende Änderungen im Arbeitsverzeichnis und verhindert Wechsel, die sie überschreiben würden."
                 )
                 section(
                     "Create and review a message", "Nachricht erstellen und prüfen",
@@ -234,8 +266,8 @@ private struct HelpView: View {
                 )
                 section(
                     "Create a commit", "Commit erstellen",
-                    "Select Commit to create a local Git commit. CommitJet includes all non-ignored changes, including staged and new files. The first commit in each repository requires confirmation unless you choose Don't show again. CommitJet never pushes changes.",
-                    "Klicke auf Commit erstellen, um einen lokalen Git-Commit anzulegen. CommitJet übernimmt alle nicht ignorierten Änderungen, auch vorgemerkte und neue Dateien. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig, außer du wählst Nicht wieder anzeigen. CommitJet pusht keine Änderungen."
+                    "Select Commit to create a local Git commit from the selected files. Other files are left out, and your existing Git staging area is preserved. The first commit in each repository requires confirmation unless you choose Don't show again. CommitJet never pushes changes.",
+                    "Klicke auf Commit erstellen, um aus den ausgewählten Dateien einen lokalen Git-Commit anzulegen. Andere Dateien bleiben außen vor und deine bestehende Git-Staging-Auswahl bleibt erhalten. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig, außer du wählst Nicht wieder anzeigen. CommitJet pusht keine Änderungen."
                 )
                 section(
                     "Ollama and privacy", "Ollama und Datenschutz",

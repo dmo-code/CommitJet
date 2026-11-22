@@ -35,6 +35,8 @@ struct ChangedFile: Identifiable, Equatable, Sendable {
     let path: String
     let oldPath: String?
     let state: FileChangeState
+    let isStaged: Bool
+    let isUnstaged: Bool
 
     var id: String { (oldPath ?? "") + "\u{0}" + path }
     var displayPath: String { oldPath.map { "\($0) → \(path)" } ?? path }
