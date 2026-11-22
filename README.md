@@ -20,7 +20,7 @@ The app uses SwiftUI `MenuBarExtra` with the native window style and has no Dock
    xcodebuild -project CommitJet.xcodeproj -scheme CommitJet -destination 'platform=macOS' -derivedDataPath /tmp/CommitJetDerived CODE_SIGNING_ALLOWED=NO build
    ```
 
-The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select the files to include in the commit; new changes are selected automatically. Select the branch name to search and switch between local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. On the first commit in each repository, confirm that the selected files should be included. Select **Don't show again** in that warning to suppress it for future commits; you can restore it in Settings.
+The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search and switch between local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore it in Settings.
 
 To start CommitJet automatically when you sign in to your Mac, enable **Launch at login** in Settings. macOS may ask you to allow it under **System Settings → General → Login Items**.
 
@@ -36,10 +36,10 @@ CommitJet has no telemetry, accounts, or cloud integration. It does not upload G
 
 ## Git behavior and limitations
 
-- CommitJet creates local commits and switches between existing local branches. It does not push, fetch, pull, merge, rebase, create branches, or delete branches.
-- A commit includes only the selected files. New files are selected automatically, and the selection also controls the diff sent for an AI suggestion. CommitJet uses a temporary Git index, so it leaves the existing index contents alone.
+- CommitJet creates local commits, switches between existing local branches, and pushes commits to a configured remote when you select **Sync changes**. For a branch without an upstream, it publishes the branch to the first configured remote. If the local branch is behind its upstream, pushing is blocked and the remote changes must be pulled with another Git client first.
+- A commit includes only staged changes. Stage selected files to add their current contents to the index, or unstage them to keep those changes out of the commit. The AI suggestion also uses only the staged diff.
 - The first commit in each repository requires confirmation unless you suppress the warning. Changed submodules, unresolved conflicts, and active merge/rebase/cherry-pick/revert/bisect states are refused.
-- The AI suggestion is built from a temporary Git index so generating it does not alter the repository index. Before committing, CommitJet checks that the commit candidate still matches the analyzed diff.
+- Before committing, CommitJet checks that the staged diff still matches the analyzed AI diff.
 - If Git reports errors (for example missing author identity), CommitJet shows the Git error. The app never changes Git configuration.
 - CommitJet is not sandboxed so it can run the local Git CLI and access the repository selected by the user. Only local selected repository paths are passed to Git.
 
