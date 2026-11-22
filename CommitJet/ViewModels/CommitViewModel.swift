@@ -55,8 +55,9 @@ final class CommitViewModel: ObservableObject {
             let server = preferences.string(forKey: "ollamaServer") ?? "http://localhost:11434"
             let model = preferences.string(forKey: "ollamaModel") ?? ""
             let language = preferences.string(forKey: "ollamaLanguage") ?? "English"
+            let messageLength = preferences.string(forKey: "commitMessageLength") ?? "long"
             guard !model.isEmpty else { throw OllamaService.OllamaError.noModels }
-            let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language)
+            let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language, detail: messageLength)
             commitMessage = answer
             aiFingerprint = diff.fingerprint
             statusMessage = localized("AI message ready to review", "KI-Nachricht kann geprüft werden")

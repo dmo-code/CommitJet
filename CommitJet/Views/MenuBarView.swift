@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct MenuBarView: View {
     @ObservedObject var model: CommitViewModel
     @AppStorage("ollamaLanguage") private var language = "English"
+    @AppStorage("suppressOverwriteConfirmation") private var suppressOverwriteConfirmation = false
     @Environment(\.dismiss) private var dismissPopover
     @StateObject private var ui = MenuBarUIState()
 
@@ -34,7 +35,7 @@ struct MenuBarView: View {
                 if model.commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Task { await model.generateMessage() }
                 } else {
-                    ui.showOverwriteWarning = true
+                    confirmMessageReplacement()
                 }
             }
 
@@ -77,19 +78,14 @@ struct MenuBarView: View {
             }
         }
         .confirmationDialog(confirmationTitle, isPresented: confirmationBinding, titleVisibility: .visible) {
-            if model.requiresFirstCommitConfirmation {
-                Button(t("Cancel", "Abbrechen"), role: .cancel) {}
-                Button(t("Include All Changes", "Alle Änderungen einbeziehen"), role: .destructive) {
-                    model.acknowledgeFirstCommit()
-                    model.dismissFirstCommitConfirmation()
-                    Task { await model.commit() }
-                }
-            } else {
-                Button(t("Cancel", "Abbrechen"), role: .cancel) {}
-                Button(t("Generate", "Erstellen")) { ui.showOverwriteWarning = false; Task { await model.generateMessage() } }
+            Button(t("Cancel", "Abbrechen"), role: .cancel) {}
+            Button(t("Include All Changes", "Alle Änderungen einbeziehen"), role: .destructive) {
+                model.acknowledgeFirstCommit()
+                model.dismissFirstCommitConfirmation()
+                Task { await model.commit() }
             }
         } message: {
-            Text(confirmationMessage)
+            Text(firstCommitConfirmationMessage)
         }
         .alert("CommitJet", isPresented: $ui.showError, presenting: model.errorMessage) { _ in
             Button("OK") { model.errorMessage = nil }
@@ -98,24 +94,38 @@ struct MenuBarView: View {
 
     private var confirmationBinding: Binding<Bool> {
         Binding(
-            get: { model.requiresFirstCommitConfirmation || ui.showOverwriteWarning },
+            get: { model.requiresFirstCommitConfirmation },
             set: { isPresented in
-                if !isPresented {
-                    model.dismissFirstCommitConfirmation()
-                    ui.showOverwriteWarning = false
-                }
+                if !isPresented { model.dismissFirstCommitConfirmation() }
             }
         )
     }
 
     private var confirmationTitle: String {
-        model.requiresFirstCommitConfirmation ? t("Include all repository changes?", "Alle Repository-Änderungen einbeziehen?") : t("Replace commit message?", "Commit-Nachricht ersetzen?")
+        t("Include all repository changes?", "Alle Repository-Änderungen einbeziehen?")
     }
 
-    private var confirmationMessage: String {
-        model.requiresFirstCommitConfirmation
-            ? t("CommitJet will include all non-ignored changes in this repository, including staged and new files. Review the count above before continuing.", "CommitJet bezieht alle nicht ignorierten Änderungen in diesem Repository ein, einschließlich vorgemerkter und neuer Dateien. Prüfe oben die Anzahl, bevor du fortfährst.")
-            : t("Ollama's suggestion will replace the current message.", "Der Vorschlag von Ollama ersetzt die aktuelle Nachricht.")
+    private var firstCommitConfirmationMessage: String {
+        t("CommitJet will include all non-ignored changes in this repository, including staged and new files. Review the count above before continuing.", "CommitJet bezieht alle nicht ignorierten Änderungen in diesem Repository ein, einschließlich vorgemerkter und neuer Dateien. Prüfe oben die Anzahl, bevor du fortfährst.")
+    }
+
+    private func confirmMessageReplacement() {
+        guard !suppressOverwriteConfirmation else {
+            Task { await model.generateMessage() }
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = t("Replace commit message?", "Commit-Nachricht ersetzen?")
+        alert.informativeText = t("Ollama's suggestion will replace the current message.", "Der Vorschlag von Ollama ersetzt die aktuelle Nachricht.")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: t("Generate", "Erstellen"))
+        alert.addButton(withTitle: t("Cancel", "Abbrechen"))
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = t("Don't show again", "Nicht wieder anzeigen")
+
+        let response = alert.runModal()
+        if alert.suppressionButton?.state == .on { suppressOverwriteConfirmation = true }
+        if response == .alertFirstButtonReturn { Task { await model.generateMessage() } }
     }
 
     private var commitMessageBinding: Binding<String> {
@@ -139,7 +149,6 @@ struct MenuBarView: View {
 
 @MainActor
 private final class MenuBarUIState: ObservableObject {
-    @Published var showOverwriteWarning = false
     @Published var showError = false
     @Published var showFolderImporter = false
     @Published var showChangedFiles = true
@@ -206,13 +215,29 @@ private struct CommitComposer: View {
     let hasChanges: Bool
     let canUseAI: Bool
     @AppStorage("ollamaLanguage") private var language = "English"
+    @FocusState private var isMessageFocused: Bool
     let onGenerate: () -> Void
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
             TextField(t("Commit message", "Commit-Nachricht"), text: $message, axis: .vertical)
-                .lineLimit(2...4)
-                .textFieldStyle(.roundedBorder)
+                .lineLimit(2...)
+                .fixedSize(horizontal: false, vertical: true)
+                .textFieldStyle(.plain)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background {
+                    RoundedRectangle(cornerRadius: 9)
+                        .fill(Color(nsColor: .textBackgroundColor))
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: 9)
+                        .strokeBorder(
+                            isMessageFocused ? Color.accentColor.opacity(0.8) : Color(nsColor: .separatorColor),
+                            lineWidth: isMessageFocused ? 1.5 : 1
+                        )
+                }
+                .focused($isMessageFocused)
                 .accessibilityLabel(t("Commit message", "Commit-Nachricht"))
             Button(action: onGenerate) {
                 if isWorking { ProgressView().controlSize(.small) }

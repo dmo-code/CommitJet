@@ -5,6 +5,7 @@ struct SettingsView: View {
     @AppStorage("ollamaServer") private var server = "http://localhost:11434"
     @AppStorage("ollamaModel") private var selectedModel = ""
     @AppStorage("ollamaLanguage") private var language = "English"
+    @AppStorage("commitMessageLength") private var commitMessageLength = "long"
     @StateObject private var ui = SettingsUIState()
 
     private var isNonLocal: Bool {
@@ -24,6 +25,16 @@ struct SettingsView: View {
                         Text("German").tag("German")
                     }
                     .padding(.vertical, 4)
+                    Picker(t("Commit message length", "Länge der Commit-Nachricht"), selection: $commitMessageLength) {
+                        Text(t("Short", "Kurz")).tag("short")
+                        Text(t("Long", "Lang")).tag("long")
+                        Text(t("Detailed", "Ausführlich")).tag("detailed")
+                    }
+                    .padding(.vertical, 4)
+                    Text(t("Subject: max. 72 characters; body lines: max. 72 characters.", "Betreff: höchstens 72 Zeichen; Textzeilen: höchstens 72 Zeichen."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                     HStack {
                         Picker(t("Model", "Modell"), selection: $selectedModel) {
                             if ui.models.isEmpty && !selectedModel.isEmpty { Text(selectedModel).tag(selectedModel) }
@@ -40,6 +51,15 @@ struct SettingsView: View {
                             .font(.caption).foregroundStyle(.orange)
                     }
                 }
+                Section(t("Confirmations", "Bestätigungen")) {
+                    Button(t("Show confirmations again", "Bestätigungen wieder anzeigen")) {
+                        resetHiddenConfirmations()
+                    }
+                    Text(t("Restores dismissed overwrite and first-commit confirmations.", "Blendet ausgeblendete Ersetzungs- und Erst-Commit-Bestätigungen wieder ein."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
             .formStyle(.grouped)
 
@@ -54,6 +74,7 @@ struct SettingsView: View {
         }
         .padding(28)
         .frame(width: 560)
+        .background(.regularMaterial)
         .task { await loadModels(silent: true) }
         .onChange(of: language) { value in
             SettingsWindowController.shared.updateTitle(language: value)
@@ -81,6 +102,14 @@ struct SettingsView: View {
     private func t(_ english: String, _ german: String) -> String {
         AppLanguage.text(english, german, language: language)
     }
+
+    private func resetHiddenConfirmations() {
+        let defaults = UserDefaults.standard
+        defaults.set(false, forKey: "suppressOverwriteConfirmation")
+        for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("confirmedAllChanges:") {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }
 
 @MainActor
@@ -106,6 +135,9 @@ final class SettingsWindowController {
             backing: .buffered,
             defer: false
         )
+        settingsWindow.isOpaque = false
+        settingsWindow.backgroundColor = .windowBackgroundColor
+        settingsWindow.titlebarAppearsTransparent = false
         settingsWindow.title = AppLanguage.text("CommitJet Settings", "CommitJet-Einstellungen", language: UserDefaults.standard.string(forKey: "ollamaLanguage") ?? "English")
         settingsWindow.isReleasedWhenClosed = false
         settingsWindow.contentView = NSHostingView(rootView: SettingsView())
