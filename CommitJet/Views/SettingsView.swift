@@ -142,6 +142,7 @@ struct SettingsView: View {
     private func resetHiddenConfirmations() {
         let defaults = UserDefaults.standard
         defaults.set(false, forKey: "suppressOverwriteConfirmation")
+        defaults.set(false, forKey: "suppressFirstCommitConfirmation")
         for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("confirmedAllChanges:") {
             defaults.removeObject(forKey: key)
         }
@@ -233,8 +234,8 @@ private struct HelpView: View {
                 )
                 section(
                     "Create a commit", "Commit erstellen",
-                    "Select Commit to create a local Git commit. CommitJet includes all non-ignored changes, including staged and new files. The first commit in each repository requires confirmation. CommitJet never pushes changes.",
-                    "Klicke auf Commit erstellen, um einen lokalen Git-Commit anzulegen. CommitJet übernimmt alle nicht ignorierten Änderungen, auch vorgemerkte und neue Dateien. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig. CommitJet pusht keine Änderungen."
+                    "Select Commit to create a local Git commit. CommitJet includes all non-ignored changes, including staged and new files. The first commit in each repository requires confirmation unless you choose Don't show again. CommitJet never pushes changes.",
+                    "Klicke auf Commit erstellen, um einen lokalen Git-Commit anzulegen. CommitJet übernimmt alle nicht ignorierten Änderungen, auch vorgemerkte und neue Dateien. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig, außer du wählst Nicht wieder anzeigen. CommitJet pusht keine Änderungen."
                 )
                 section(
                     "Ollama and privacy", "Ollama und Datenschutz",
@@ -243,8 +244,8 @@ private struct HelpView: View {
                 )
                 section(
                     "Show confirmations again", "Bestätigungen wieder anzeigen",
-                    "If you selected Don't show again for the message replacement prompt, open Settings and select Show confirmations again. This also restores first-commit confirmations.",
-                    "Wenn du beim Ersetzungsdialog Nicht wieder anzeigen gewählt hast, öffne die Einstellungen und klicke auf Bestätigungen wieder anzeigen. Damit werden auch die Bestätigungen für den ersten Commit zurückgesetzt."
+                    "If you selected Don't show again for a prompt, open Settings and select Show confirmations again. This restores message replacement and first-commit confirmations.",
+                    "Wenn du bei einer Abfrage Nicht wieder anzeigen gewählt hast, öffne die Einstellungen und klicke auf Bestätigungen wieder anzeigen. Dadurch werden Bestätigungen zum Ersetzen der Commit-Nachricht und für den ersten Commit wieder eingeblendet."
                 )
                 section(
                     "Launch at login", "Beim Anmelden starten",

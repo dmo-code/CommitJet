@@ -9,7 +9,6 @@ final class CommitViewModel: ObservableObject {
     @Published private(set) var isWorking = false
     @Published var statusMessage: String?
     @Published var errorMessage: String?
-    @Published var requiresFirstCommitConfirmation = false
     private var aiFingerprint: String?
     private let git = GitService()
     private let preferences = UserDefaults.standard
@@ -67,7 +66,7 @@ final class CommitViewModel: ObservableObject {
     func commit(confirmedAllChanges: Bool = false) async {
         guard canCommit, let repositoryURL else { return }
         if requiresConfirmation {
-            guard confirmedAllChanges else { requiresFirstCommitConfirmation = true; return }
+            guard confirmedAllChanges else { return }
             acknowledgeFirstCommit()
         }
         isWorking = true
@@ -85,10 +84,14 @@ final class CommitViewModel: ObservableObject {
     }
 
     func acknowledgeFirstCommit() { preferences.set(true, forKey: acknowledgementKey) }
-    func dismissFirstCommitConfirmation() { requiresFirstCommitConfirmation = false }
+    func suppressFirstCommitConfirmation() { preferences.set(true, forKey: "suppressFirstCommitConfirmation") }
 
     private var acknowledgementKey: String { "confirmedAllChanges:" + (repositoryURL?.path ?? "") }
-    private var requiresConfirmation: Bool { !preferences.bool(forKey: acknowledgementKey) }
+    var requiresFirstCommitConfirmation: Bool {
+        !preferences.bool(forKey: "suppressFirstCommitConfirmation") && !preferences.bool(forKey: acknowledgementKey)
+    }
+
+    private var requiresConfirmation: Bool { requiresFirstCommitConfirmation }
 
     private func localized(_ english: String, _ german: String) -> String {
         AppLanguage.text(english, german, language: preferences.string(forKey: "ollamaLanguage") ?? "English")

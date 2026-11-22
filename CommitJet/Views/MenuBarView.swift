@@ -43,7 +43,7 @@ struct MenuBarView: View {
 
             StatusMessages(status: model.statusMessage, error: model.errorMessage)
 
-            Button { Task { await model.commit() } } label: {
+            Button(action: confirmAndCommit) {
                 if model.isWorking { ProgressView().controlSize(.small).frame(maxWidth: .infinity) }
                 else { Text(t("Commit", "Commit erstellen")).frame(maxWidth: .infinity) }
             }
@@ -85,36 +85,36 @@ struct MenuBarView: View {
                 model.errorMessage = error.localizedDescription
             }
         }
-        .confirmationDialog(confirmationTitle, isPresented: confirmationBinding, titleVisibility: .visible) {
-            Button(t("Cancel", "Abbrechen"), role: .cancel) {}
-            Button(t("Include All Changes", "Alle Änderungen einbeziehen"), role: .destructive) {
-                model.acknowledgeFirstCommit()
-                model.dismissFirstCommitConfirmation()
-                Task { await model.commit() }
-            }
-        } message: {
-            Text(firstCommitConfirmationMessage)
-        }
         .alert("CommitJet", isPresented: $ui.showError, presenting: model.errorMessage) { _ in
             Button("OK") { model.errorMessage = nil }
         } message: { error in Text(error) }
     }
 
-    private var confirmationBinding: Binding<Bool> {
-        Binding(
-            get: { model.requiresFirstCommitConfirmation },
-            set: { isPresented in
-                if !isPresented { model.dismissFirstCommitConfirmation() }
-            }
+    private func confirmAndCommit() {
+        guard model.canCommit else { return }
+        guard model.requiresFirstCommitConfirmation else {
+            Task { await model.commit() }
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = t("Include all repository changes?", "Alle Repository-Änderungen einbeziehen?")
+        alert.informativeText = t(
+            "CommitJet will include all non-ignored changes in this repository, including staged and new files. Review the count above before continuing.",
+            "CommitJet bezieht alle nicht ignorierten Änderungen in diesem Repository ein, einschließlich vorgemerkter und neuer Dateien. Prüfe oben die Anzahl, bevor du fortfährst."
         )
-    }
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: t("Include All Changes", "Alle Änderungen einbeziehen"))
+        alert.addButton(withTitle: t("Cancel", "Abbrechen"))
+        alert.showsSuppressionButton = true
+        alert.suppressionButton?.title = t("Don't show again", "Nicht wieder anzeigen")
 
-    private var confirmationTitle: String {
-        t("Include all repository changes?", "Alle Repository-Änderungen einbeziehen?")
-    }
-
-    private var firstCommitConfirmationMessage: String {
-        t("CommitJet will include all non-ignored changes in this repository, including staged and new files. Review the count above before continuing.", "CommitJet bezieht alle nicht ignorierten Änderungen in diesem Repository ein, einschließlich vorgemerkter und neuer Dateien. Prüfe oben die Anzahl, bevor du fortfährst.")
+        let response = alert.runModal()
+        if alert.suppressionButton?.state == .on {
+            model.suppressFirstCommitConfirmation()
+        }
+        guard response == .alertFirstButtonReturn else { return }
+        Task { await model.commit(confirmedAllChanges: true) }
     }
 
     private func confirmMessageReplacement() {
