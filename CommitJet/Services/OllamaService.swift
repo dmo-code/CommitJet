@@ -49,18 +49,18 @@ struct OllamaService {
             systemInstruction = "Du schreibst Git-Commit-Nachrichten ausschließlich auf Deutsch. Die Betreffzeile und der gesamte Fließtext müssen deutsch sein. Nur standardisierte Conventional-Commit-Typen und Scopes wie `feat`, `fix` oder `ui` dürfen Englisch bleiben. Englische Zeichenketten im Diff sind kein Grund, Englisch zu schreiben. Gib niemals nur einen Typ oder Präfix wie `feat:` aus. Code-Bezeichner, API-Namen und Dateipfade bleiben unverändert."
             let lengthInstruction: String
             switch detail {
-            case "short": lengthInstruction = "Gib nur die Betreffzeile aus, ohne Textkörper."
-            case "detailed": lengthInstruction = "Füge nach einer Leerzeile einen Textkörper mit 3–5 erklärenden Sätzen hinzu (meist 45–90 Wörter)."
-            default: lengthInstruction = "Füge nach einer Leerzeile einen Textkörper mit 1–2 erklärenden Sätzen hinzu (meist 20–45 Wörter)."
+            case "short": lengthInstruction = "Gib ausschließlich eine einzelne Betreffzeile mit höchstens 50 Zeichen aus; kein Textkörper und keine zweite Zeile."
+            case "detailed": lengthInstruction = "Füge nach einer Leerzeile einen Textkörper mit 2–3 erklärenden Sätzen und höchstens 45 Wörtern hinzu."
+            default: lengthInstruction = "Füge nach einer Leerzeile genau einen erklärenden Satz mit höchstens 20 Wörtern hinzu."
             }
             taskInstruction = "Verfasse eine aussagekräftige Commit-Nachricht aus diesem Diff. Schreibe zuerst eine prägnante, konkrete Betreffzeile (bevorzugt Conventional Commits; möglichst etwa 50 Zeichen, höchstens 72 Zeichen einschließlich Typ und Scope). \(lengthInstruction) Umbrich Textkörperzeilen bei höchstens 72 Zeichen. Erkläre, was sich ändert und welchen Zweck oder sichtbaren Nutzen das hat. Bleibe bei belegbaren Fakten, erfinde keine Absicht, liste keine Dateinamen auf und wiederhole nicht bloß den Betreff. Gib nur die Commit-Nachricht aus, ohne Markdown oder Vorwort."
         } else {
             systemInstruction = "You write Git commit messages exclusively in English. The subject and entire body must be in English. Keep standardized Conventional Commit types and scopes in English. Never return only a type or prefix like `feat:`. Preserve code identifiers, API names, and file paths as written."
             let lengthInstruction: String
             switch detail {
-            case "short": lengthInstruction = "Return only the subject line, with no body."
-            case "detailed": lengthInstruction = "After a blank line, add a body with 3–5 explanatory sentences (usually 45–90 words)."
-            default: lengthInstruction = "After a blank line, add a body with 1–2 explanatory sentences (usually 20–45 words)."
+            case "short": lengthInstruction = "Return exactly one subject line of at most 50 characters; no body and no second line."
+            case "detailed": lengthInstruction = "After a blank line, add a body with 2–3 explanatory sentences and at most 45 words."
+            default: lengthInstruction = "After a blank line, add exactly one explanatory sentence of at most 20 words."
             }
             taskInstruction = "Write an informative commit message based on this diff. Start with a concise, specific subject line (preferably Conventional Commits; aim for about 50 characters and never exceed 72 characters including type and scope). \(lengthInstruction) Wrap body lines at 72 characters maximum. Explain what changed and its purpose or user-visible effect. Be factual, do not invent intent, list filenames, or merely repeat the subject. Return only the commit message, with no Markdown or prefatory text."
         }
@@ -77,7 +77,7 @@ struct OllamaService {
             answer = cleanMessage(try await generateResponse(server: server, model: model, system: systemInstruction, prompt: retryPrompt))
         }
         guard hasDescriptiveSubject(answer) else { throw OllamaError.emptyResponse }
-        answer = enforceSubjectLimit(answer, limit: 72)
+        answer = enforceSubjectLimit(answer, limit: detail == "short" ? 50 : 72)
         answer = wrapBodyLines(answer, limit: 72)
         return answer
     }

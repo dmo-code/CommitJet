@@ -9,6 +9,7 @@ struct MenuBarView: View {
     @AppStorage("changeListHeightPercent") private var panelHeightPercent = 60.0
     @AppStorage("suppressOverwriteConfirmation") private var suppressOverwriteConfirmation = false
     @Environment(\.dismiss) private var dismissPopover
+    @Environment(\.colorScheme) private var systemColorScheme
     @StateObject private var ui = MenuBarUIState()
 
     var body: some View {
@@ -54,7 +55,8 @@ struct MenuBarView: View {
 
             CommitComposer(message: commitMessageBinding, isWorking: model.isWorking,
                            hasChanges: model.hasStagedChanges,
-                           canUseAI: model.repositoryURL != nil) {
+                           canUseAI: model.repositoryURL != nil,
+                           colorScheme: resolvedColorScheme) {
                 if model.commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Task { await model.generateMessage() }
                 } else {
@@ -105,14 +107,7 @@ struct MenuBarView: View {
             .keyboardShortcut(.return, modifiers: .command)
 
             HStack {
-                Button {
-                    dismissPopover()
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 250_000_000)
-                        SettingsWindowController.shared.showSettings()
-                    }
-                } label: { Label(t("Settings", "Einstellungen"), systemImage: "gear") }
-                    .buttonStyle(.plain)
+                settingsButton
                 Button {
                     dismissPopover()
                     Task { @MainActor in
@@ -129,7 +124,8 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 360, height: ui.panelHeight)
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(panelBackgroundColor.opacity(surfaceOpacity))
+        .environment(\.colorScheme, resolvedColorScheme)
         .preferredColorScheme(preferredColorScheme)
         .onAppear {
             ui.updatePanelHeightForCurrentScreen(percent: panelHeightPercent)
@@ -208,12 +204,38 @@ struct MenuBarView: View {
         return language == "German" ? "\(count) geänderte Dateien" : "\(count) changed \(count == 1 ? "file" : "files")"
     }
 
+    @ViewBuilder
+    private var settingsButton: some View {
+        Button {
+            dismissPopover()
+            Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 250_000_000)
+                SettingsWindowController.shared.showSettings()
+            }
+        } label: { Label(t("Settings", "Einstellungen"), systemImage: "gear") }
+            .buttonStyle(.plain)
+    }
+
     private var preferredColorScheme: ColorScheme? {
         switch appearance {
         case "light": .light
         case "dark": .dark
         default: nil
         }
+    }
+
+    private var resolvedColorScheme: ColorScheme {
+        preferredColorScheme ?? systemColorScheme
+    }
+
+    private var panelBackgroundColor: Color {
+        resolvedColorScheme == .dark
+            ? Color(red: 0.12, green: 0.12, blue: 0.13)
+            : Color(nsColor: .windowBackgroundColor)
+    }
+
+    private var surfaceOpacity: Double {
+        resolvedColorScheme == .dark ? 0.80 : 0.50
     }
 
     private func syncButtonTitle(_ status: RemoteSyncStatus) -> String {
@@ -452,7 +474,9 @@ private struct CommitComposer: View {
     let isWorking: Bool
     let hasChanges: Bool
     let canUseAI: Bool
+    let colorScheme: ColorScheme
     @AppStorage("ollamaLanguage") private var language = "English"
+    @AppStorage("commitMessageLength") private var commitMessageLength = "long"
     @FocusState private var isMessageFocused: Bool
     let onGenerate: () -> Void
 
@@ -466,7 +490,9 @@ private struct CommitComposer: View {
                 .padding(.vertical, 8)
                 .background {
                     RoundedRectangle(cornerRadius: 9)
-                        .fill(Color(nsColor: .textBackgroundColor))
+                        .fill(colorScheme == .dark
+                              ? Color(red: 0.18, green: 0.18, blue: 0.19).opacity(0.80)
+                              : Color(nsColor: .textBackgroundColor).opacity(0.50))
                 }
                 .overlay {
                     RoundedRectangle(cornerRadius: 9)
@@ -477,20 +503,35 @@ private struct CommitComposer: View {
                 }
                 .focused($isMessageFocused)
                 .accessibilityLabel(t("Commit message", "Commit-Nachricht"))
-            Button(action: onGenerate) {
-                if isWorking { ProgressView().controlSize(.small) }
-                else { Image(systemName: "sparkles") }
+            VStack(spacing: 4) {
+                Button(action: onGenerate) {
+                    if isWorking { ProgressView().controlSize(.small) }
+                    else { Image(systemName: "sparkles") }
+                }
+                .buttonStyle(.bordered)
+                .help(t("Generate with Ollama", "Mit Ollama erstellen") + " · " + messageLengthLabel)
+                .disabled(!canUseAI || isWorking || !hasChanges)
+                .accessibilityLabel(t("Generate commit message with Ollama", "Commit-Nachricht mit Ollama erstellen") + " · " + messageLengthLabel)
+                Text(messageLengthLabel)
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .buttonStyle(.bordered)
-            .help(t("Generate with Ollama", "Mit Ollama erstellen"))
-            .disabled(!canUseAI || isWorking || !hasChanges)
-            .accessibilityLabel(t("Generate commit message with Ollama", "Commit-Nachricht mit Ollama erstellen"))
+        }
+    }
+
+    private var messageLengthLabel: String {
+        switch commitMessageLength {
+        case "short": t("Short", "Kurz")
+        case "detailed": t("Detailed", "Ausführlich")
+        default: t("Normal", "Normal")
         }
     }
 
     private func t(_ english: String, _ german: String) -> String {
         AppLanguage.text(english, german, language: language)
     }
+
 }
 
 private extension FileChangeState {

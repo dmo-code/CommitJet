@@ -106,7 +106,13 @@ final class CommitViewModel: ObservableObject {
             let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language, detail: messageLength)
             commitMessage = answer
             aiFingerprint = diff.fingerprint
-            statusMessage = localized("AI message ready to review", "KI-Nachricht kann geprüft werden")
+            let lengthLabel: (String, String)
+            switch messageLength {
+            case "short": lengthLabel = ("Short", "Kurz")
+            case "detailed": lengthLabel = ("Detailed", "Ausführlich")
+            default: lengthLabel = ("Normal", "Normal")
+            }
+            statusMessage = localized("AI message ready to review · \(lengthLabel.0)", "KI-Nachricht kann geprüft werden · \(lengthLabel.1)")
         } catch { errorMessage = error.localizedDescription; statusMessage = nil }
     }
 

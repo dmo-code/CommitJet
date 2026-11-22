@@ -26,7 +26,7 @@ To start CommitJet automatically when you sign in to your Mac, enable **Launch a
 
 ## Ollama
 
-Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the commit message language and select a short, long, or detailed suggestion. The Sparkles button requests a Conventional Commit message. You can edit the suggestion before committing. In-app Help explains repository selection, message generation, privacy, and confirmation settings.
+Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the commit message language and select a short, normal, or detailed suggestion. Short generates one subject line of at most 50 characters; normal adds one body sentence of at most 20 words; detailed adds 2–3 body sentences of at most 45 words. The selected length is shown beside the Sparkles button and in the ready-to-review status. You can edit the suggestion before committing. In-app Help explains repository selection, message generation, privacy, and confirmation settings.
 
 AI generation is optional and only runs after clicking Sparkles. A remote server address triggers a privacy notice; the diff is sent only to that configured endpoint. Requests have a 45 second timeout and diffs larger than 150 KB are refused.
 

@@ -78,11 +78,11 @@ struct SettingsView: View {
                     .padding(.vertical, 4)
                     Picker(t("Commit message length", "Länge der Commit-Nachricht"), selection: $commitMessageLength) {
                         Text(t("Short", "Kurz")).tag("short")
-                        Text(t("Long", "Lang")).tag("long")
+                        Text(t("Normal", "Normal")).tag("long")
                         Text(t("Detailed", "Ausführlich")).tag("detailed")
                     }
                     .padding(.vertical, 4)
-                    Text(t("Subject: max. 72 characters; body lines: max. 72 characters.", "Betreff: höchstens 72 Zeichen; Textzeilen: höchstens 72 Zeichen."))
+                    Text(commitMessageLengthDescription)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -173,6 +173,17 @@ struct SettingsView: View {
         AppLanguage.text(english, german, language: language)
     }
 
+    private var commitMessageLengthDescription: String {
+        switch commitMessageLength {
+        case "short":
+            t("Short: one subject line, at most 50 characters, no body.", "Kurz: eine Betreffzeile mit höchstens 50 Zeichen, ohne Textkörper.")
+        case "detailed":
+            t("Detailed: a subject plus 2–3 body sentences, at most 45 words. Lines wrap at 72 characters.", "Ausführlich: Betreff plus 2–3 Sätze im Textkörper, höchstens 45 Wörter. Zeilen werden bei 72 Zeichen umbrochen.")
+        default:
+            t("Normal: a subject plus one body sentence, at most 20 words. Lines wrap at 72 characters.", "Normal: Betreff plus ein Satz im Textkörper, höchstens 20 Wörter. Zeilen werden bei 72 Zeichen umbrochen.")
+        }
+    }
+
     private var preferredColorScheme: ColorScheme? {
         switch appearance {
         case "light": .light
@@ -239,6 +250,7 @@ final class SettingsWindowController {
         settingsWindow.titlebarAppearsTransparent = false
         settingsWindow.title = AppLanguage.text("CommitJet Settings", "CommitJet-Einstellungen", language: UserDefaults.standard.string(forKey: "ollamaLanguage") ?? "English")
         settingsWindow.isReleasedWhenClosed = false
+        settingsWindow.collectionBehavior.insert(.moveToActiveSpace)
         settingsWindow.contentView = NSHostingView(rootView: SettingsView())
         settingsWindow.center()
         window = settingsWindow
@@ -250,8 +262,9 @@ final class SettingsWindowController {
     }
 
     private func bringToFront(_ window: NSWindow) {
+        window.collectionBehavior.insert(.moveToActiveSpace)
+        if window.isMiniaturized { window.deminiaturize(nil) }
         NSApp.activate(ignoringOtherApps: true)
-        window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
     }
 }
