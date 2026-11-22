@@ -1,0 +1,68 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+/* PBXBuildFile */
+  B00000000000000000000001 = {isa = PBXBuildFile; fileRef = C00000000000000000000001;};
+  B00000000000000000000002 = {isa = PBXBuildFile; fileRef = C00000000000000000000002;};
+  B00000000000000000000003 = {isa = PBXBuildFile; fileRef = C00000000000000000000003;};
+  B00000000000000000000004 = {isa = PBXBuildFile; fileRef = C00000000000000000000004;};
+  B00000000000000000000005 = {isa = PBXBuildFile; fileRef = C00000000000000000000005;};
+  B00000000000000000000006 = {isa = PBXBuildFile; fileRef = C00000000000000000000006;};
+  B00000000000000000000007 = {isa = PBXBuildFile; fileRef = C00000000000000000000007;};
+  B00000000000000000000008 = {isa = PBXBuildFile; fileRef = C00000000000000000000008;};
+  B00000000000000000000009 = {isa = PBXBuildFile; fileRef = C00000000000000000000009;};
+  B0000000000000000000000A = {isa = PBXBuildFile; fileRef = C0000000000000000000000D;};
+/* PBXContainerItemProxy */
+  E00000000000000000000004 = {isa = PBXContainerItemProxy; containerPortal = E00000000000000000000001; proxyType = 1; remoteGlobalIDString = E00000000000000000000002; remoteInfo = CommitJet;};
+/* PBXFileReference */
+  C00000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/App/CommitJetApp.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Models/RepositorySnapshot.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Services/GitService.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Services/OllamaService.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/ViewModels/CommitViewModel.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Views/MenuBarView.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Views/SettingsView.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJetTests/GitServiceTests.swift; sourceTree = SOURCE_ROOT;};
+  C00000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJetTests/OllamaServiceTests.swift; sourceTree = SOURCE_ROOT;};
+  C0000000000000000000000A = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = CommitJet/Info.plist; sourceTree = SOURCE_ROOT;};
+  C0000000000000000000000B = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CommitJet.app; sourceTree = BUILT_PRODUCTS_DIR;};
+  C0000000000000000000000C = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CommitJetTests.xctest; sourceTree = BUILT_PRODUCTS_DIR;};
+  C0000000000000000000000D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommitJet/Models/AppLanguage.swift; sourceTree = SOURCE_ROOT;};
+/* PBXFrameworksBuildPhase */
+  F00000000000000000000005 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+  F00000000000000000000006 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+/* PBXGroup */
+  D00000000000000000000001 = {isa = PBXGroup; children = (D00000000000000000000002, D00000000000000000000003, D00000000000000000000004); sourceTree = "<group>";};
+  D00000000000000000000002 = {isa = PBXGroup; path = CommitJet; sourceTree = "<group>"; children = (C0000000000000000000000A, C00000000000000000000001, C00000000000000000000002, C00000000000000000000003, C00000000000000000000004, C00000000000000000000005, C00000000000000000000006, C00000000000000000000007, C0000000000000000000000D);};
+  D00000000000000000000003 = {isa = PBXGroup; path = CommitJetTests; sourceTree = "<group>"; children = (C00000000000000000000008, C00000000000000000000009);};
+  D00000000000000000000004 = {isa = PBXGroup; name = Products; sourceTree = "<group>"; children = (C0000000000000000000000B, C0000000000000000000000C);};
+/* PBXNativeTarget */
+  E00000000000000000000002 = {isa = PBXNativeTarget; buildConfigurationList = 900000000000000000000001; buildPhases = (F00000000000000000000001, F00000000000000000000005, F00000000000000000000002); buildRules = (); dependencies = (); name = CommitJet; productName = CommitJet; productReference = C0000000000000000000000B; productType = "com.apple.product-type.application";};
+  E00000000000000000000003 = {isa = PBXNativeTarget; buildConfigurationList = 900000000000000000000002; buildPhases = (F00000000000000000000003, F00000000000000000000006, F00000000000000000000004); buildRules = (); dependencies = (E00000000000000000000005); name = CommitJetTests; productName = CommitJetTests; productReference = C0000000000000000000000C; productType = "com.apple.product-type.bundle.unit-test";};
+/* PBXProject */
+  E00000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2720; TargetAttributes = {E00000000000000000000002 = {CreatedOnToolsVersion = 27.2; }; E00000000000000000000003 = {CreatedOnToolsVersion = 27.2; }; }; }; buildConfigurationList = 900000000000000000000003; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; knownRegions = (en, Base); mainGroup = D00000000000000000000001; productRefGroup = D00000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (E00000000000000000000002, E00000000000000000000003);};
+/* PBXResourcesBuildPhase */
+  F00000000000000000000001 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+  F00000000000000000000003 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
+/* PBXSourcesBuildPhase */
+  F00000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000001, B00000000000000000000002, B00000000000000000000003, B00000000000000000000004, B00000000000000000000005, B00000000000000000000006, B00000000000000000000007, B0000000000000000000000A); runOnlyForDeploymentPostprocessing = 0;};
+  F00000000000000000000004 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (B00000000000000000000008, B00000000000000000000009); runOnlyForDeploymentPostprocessing = 0;};
+/* PBXTargetDependency */
+  E00000000000000000000005 = {isa = PBXTargetDependency; target = E00000000000000000000002; targetProxy = E00000000000000000000004;};
+/* XCBuildConfiguration */
+  A00000000000000000000001 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; ENABLE_TESTABILITY = YES; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = CommitJet/Info.plist; MACOSX_DEPLOYMENT_TARGET = 13.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.commitjet.app; PRODUCT_NAME = CommitJet; SDKROOT = macosx; SWIFT_VERSION = 6.0;}; name = Debug;};
+  A00000000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGN_STYLE = Automatic; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = NO; INFOPLIST_FILE = CommitJet/Info.plist; MACOSX_DEPLOYMENT_TARGET = 13.0; MARKETING_VERSION = 1.0; PRODUCT_BUNDLE_IDENTIFIER = com.commitjet.app; PRODUCT_NAME = CommitJet; SDKROOT = macosx; SWIFT_VERSION = 6.0;}; name = Release;};
+  A00000000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.commitjet.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_VERSION = 6.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CommitJet.app/Contents/MacOS/CommitJet";}; name = Debug;};
+  A00000000000000000000004 = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; CODE_SIGN_STYLE = Automatic; GENERATE_INFOPLIST_FILE = YES; MACOSX_DEPLOYMENT_TARGET = 14.0; PRODUCT_BUNDLE_IDENTIFIER = com.commitjet.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = macosx; SWIFT_VERSION = 6.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CommitJet.app/Contents/MacOS/CommitJet";}; name = Release;};
+  A00000000000000000000005 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; SDKROOT = macosx; SWIFT_VERSION = 6.0;}; name = Debug;};
+  A00000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {CLANG_ENABLE_MODULES = YES; MACOSX_DEPLOYMENT_TARGET = 13.0; SDKROOT = macosx; SWIFT_VERSION = 6.0;}; name = Release;};
+/* XCConfigurationList */
+  900000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000001, A00000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  900000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000003, A00000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  900000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000005, A00000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+ };
+ rootObject = E00000000000000000000001;
+}
