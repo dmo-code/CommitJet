@@ -76,6 +76,7 @@ struct MenuBarView: View {
         }
         .padding(14)
         .frame(width: 360)
+        .onAppear(perform: refreshRepository)
         .onChange(of: model.errorMessage) { value in ui.showError = value != nil }
         .fileImporter(isPresented: $ui.showFolderImporter, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
             switch result {
