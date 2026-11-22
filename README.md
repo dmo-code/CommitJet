@@ -22,6 +22,25 @@ The app uses SwiftUI `MenuBarExtra` with the native window style and has no Dock
 
 The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search and switch between local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore it in Settings.
 
+## Unsigned GitHub releases
+
+CommitJet is distributed as an unsigned macOS app outside the App Store. No Apple Developer account is required for this release path. The app targets macOS 13 and later and is packaged for both Apple silicon and Intel Macs.
+
+To build a release ZIP locally:
+
+```sh
+./scripts/package-release.sh 1.0.0
+```
+
+The script writes `CommitJet-1.0.0-macOS.zip` and its SHA-256 checksum under `.build/releases/`. To publish a GitHub Release, push a version tag after committing the release changes:
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release. Because the app is not signed or notarized, macOS may block its first launch. If the user trusts the download, they can try opening it once and then choose **System Settings → Privacy & Security → Open Anyway**. See [Apple's guidance for opening apps](https://support.apple.com/en-us/102445).
+
 To start CommitJet automatically when you sign in to your Mac, enable **Launch at login** in Settings. macOS may ask you to allow it under **System Settings → General → Login Items**.
 
 ## Ollama
