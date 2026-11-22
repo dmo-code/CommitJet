@@ -13,38 +13,44 @@ struct SettingsView: View {
     }
 
     var body: some View {
-        Form {
-            Section(t("Ollama", "Ollama")) {
-                TextField(t("Server address", "Serveradresse"), text: $server)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.vertical, 4)
-                Picker(t("Interface and commit language", "Oberflächen- und Commit-Sprache"), selection: $language) {
-                    Text("English").tag("English")
-                    Text("German").tag("German")
-                }
-                .padding(.vertical, 4)
-                HStack {
-                    Picker(t("Model", "Modell"), selection: $selectedModel) {
-                        if ui.models.isEmpty && !selectedModel.isEmpty { Text(selectedModel).tag(selectedModel) }
-                        ForEach(ui.models, id: \.self) { Text($0).tag($0) }
+        VStack(alignment: .leading, spacing: 18) {
+            Form {
+                Section(t("Ollama", "Ollama")) {
+                    TextField(t("Server address", "Serveradresse"), text: $server)
+                        .textFieldStyle(.roundedBorder)
+                        .padding(.vertical, 4)
+                    Picker(t("Interface and commit language", "Oberflächen- und Commit-Sprache"), selection: $language) {
+                        Text("English").tag("English")
+                        Text("German").tag("German")
                     }
-                    Button(t("Load Models", "Modelle laden")) { Task { await loadModels() } }.disabled(ui.working)
-                }
-                .padding(.vertical, 4)
-                Button(t("Test Connection", "Verbindung testen")) { Task { await testConnection() } }.disabled(ui.working)
                     .padding(.vertical, 4)
-                if let message = ui.message { Text(message).font(.caption).foregroundStyle(.secondary) }
-                if isNonLocal {
-                    Label(t("This server is not on this Mac. Repository diffs are sent to the configured address only when you request an AI message.", "Dieser Server läuft nicht auf diesem Mac. Repository-Diffs werden nur dann an die konfigurierte Adresse gesendet, wenn du eine KI-Nachricht anforderst."), systemImage: "exclamationmark.shield")
-                        .font(.caption).foregroundStyle(.orange)
+                    HStack {
+                        Picker(t("Model", "Modell"), selection: $selectedModel) {
+                            if ui.models.isEmpty && !selectedModel.isEmpty { Text(selectedModel).tag(selectedModel) }
+                            ForEach(ui.models, id: \.self) { Text($0).tag($0) }
+                        }
+                        Button(t("Load Models", "Modelle laden")) { Task { await loadModels() } }.disabled(ui.working)
+                    }
+                    .padding(.vertical, 4)
+                    Button(t("Test Connection", "Verbindung testen")) { Task { await testConnection() } }.disabled(ui.working)
+                        .padding(.vertical, 4)
+                    if let message = ui.message { Text(message).font(.caption).foregroundStyle(.secondary) }
+                    if isNonLocal {
+                        Label(t("This server is not on this Mac. Repository diffs are sent to the configured address only when you request an AI message.", "Dieser Server läuft nicht auf diesem Mac. Repository-Diffs werden nur dann an die konfigurierte Adresse gesendet, wenn du eine KI-Nachricht anforderst."), systemImage: "exclamationmark.shield")
+                            .font(.caption).foregroundStyle(.orange)
+                    }
                 }
             }
-            Section(t("Privacy", "Datenschutz")) {
+            .formStyle(.grouped)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(t("Privacy", "Datenschutz"))
+                    .font(.headline)
                 Text(t("CommitJet does not use cloud services or telemetry. Git data is sent only to Ollama after you click the Sparkles button.", "CommitJet verwendet keine Cloud-Dienste und keine Telemetrie. Git-Daten werden erst nach einem Klick auf die Funkeln-Schaltfläche an Ollama gesendet."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 4)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(28)
         .frame(width: 560)
