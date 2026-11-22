@@ -22,9 +22,11 @@ The app uses `MenuBarExtra` and has no Dock icon or persistent main window. The 
 
 The app appears in the menu bar. Choose a local repository folder to see its branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Enter a commit message, then select **Commit**. On the first commit in each repository, confirm that all non-ignored changes (including staged and new files) should be included.
 
+To start CommitJet automatically when you sign in to your Mac, enable **Launch at login** in Settings. macOS may ask you to allow it under **System Settings → General → Login Items**.
+
 ## Ollama
 
-Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the commit message language. The Sparkles button requests a concise Conventional Commit subject. You can edit the suggestion before committing.
+Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the commit message language and select a short, long, or detailed suggestion. The Sparkles button requests a Conventional Commit message. You can edit the suggestion before committing. In-app Help explains repository selection, message generation, privacy, and confirmation settings.
 
 AI generation is optional and only runs after clicking Sparkles. A remote server address triggers a privacy notice; the diff is sent only to that configured endpoint. Requests have a 45 second timeout and diffs larger than 150 KB are refused.
 
