@@ -39,7 +39,19 @@ git tag v1.0.0
 git push origin v1.0.0
 ```
 
-Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release. Because the app is not signed or notarized, macOS may block its first launch. If the user trusts the download, they can try opening it once and then choose **System Settings → Privacy & Security → Open Anyway**. See [Apple's guidance for opening apps](https://support.apple.com/en-us/102445).
+Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release.
+
+### Opening the downloaded app
+
+Because CommitJet is not signed or notarized, macOS may say that Apple cannot check it for malicious software. If you downloaded CommitJet from the official [GitHub Releases page](https://github.com/dmo-code/CommitJet/releases) and want to open it:
+
+1. Double-click the downloaded ZIP to extract `CommitJet.app`, then move the app to your **Applications** folder.
+2. Try to open CommitJet once. When macOS shows the warning, click **Done**; do not choose **Move to Trash**.
+3. Open **Apple menu → System Settings → Privacy & Security** and scroll down to the **Security** section.
+4. Click **Open Anyway** (German: **Dennoch öffnen**) next to the message about CommitJet.
+5. Confirm the warning that appears again by clicking **Open**. Enter your Mac password if requested.
+
+After you approve it this way, you can open CommitJet normally. This approval is needed once on each Mac. See [Apple's guidance for opening apps](https://support.apple.com/en-us/102445).
 
 To start CommitJet automatically when you sign in to your Mac, enable **Launch at login** in Settings. macOS may ask you to allow it under **System Settings → General → Login Items**.
 
