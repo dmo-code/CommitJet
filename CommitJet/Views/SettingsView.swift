@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 struct SettingsView: View {
     @AppStorage("ollamaServer") private var server = "http://localhost:11434"
@@ -7,6 +8,9 @@ struct SettingsView: View {
     @AppStorage("ollamaLanguage") private var language = "English"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
     @StateObject private var ui = SettingsUIState()
+    @State private var loginItemStatus = SMAppService.mainApp.status
+    @State private var loginItemMessage: String?
+    @State private var confirmationsRestored = false
 
     private var isNonLocal: Bool {
         guard let host = URLComponents(string: server)?.host?.lowercased() else { return false }
@@ -16,6 +20,28 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             Form {
+                Section(t("General", "Allgemein")) {
+                    Toggle(t("Launch at login", "Beim Anmelden starten"), isOn: Binding(
+                        get: { loginItemStatus == .enabled || loginItemStatus == .requiresApproval },
+                        set: { setLaunchAtLogin($0) }
+                    ))
+                    Text(t("CommitJet starts automatically when you sign in to your Mac.", "CommitJet startet automatisch, wenn du dich am Mac anmeldest."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if loginItemStatus == .requiresApproval {
+                        Text(t("Allow CommitJet in System Settings under General → Login Items.", "Erlaube CommitJet in den Systemeinstellungen unter Allgemein → Anmeldeobjekte."))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let loginItemMessage {
+                        Text(loginItemMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
                 Section(t("Ollama", "Ollama")) {
                     TextField(t("Server address", "Serveradresse"), text: $server)
                         .textFieldStyle(.roundedBorder)
@@ -54,11 +80,17 @@ struct SettingsView: View {
                 Section(t("Confirmations", "Bestätigungen")) {
                     Button(t("Show confirmations again", "Bestätigungen wieder anzeigen")) {
                         resetHiddenConfirmations()
+                        confirmationsRestored = true
                     }
                     Text(t("Restores dismissed overwrite and first-commit confirmations.", "Blendet ausgeblendete Ersetzungs- und Erst-Commit-Bestätigungen wieder ein."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if confirmationsRestored {
+                        Label(t("Confirmations will be shown again.", "Bestätigungen werden wieder angezeigt."), systemImage: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    }
                 }
             }
             .formStyle(.grouped)
@@ -75,9 +107,13 @@ struct SettingsView: View {
         .padding(28)
         .frame(width: 560)
         .background(.regularMaterial)
-        .task { await loadModels(silent: true) }
+        .task {
+            refreshLoginItemStatus()
+            await loadModels(silent: true)
+        }
         .onChange(of: language) { value in
             SettingsWindowController.shared.updateTitle(language: value)
+            HelpWindowController.shared.updateTitle(language: value)
         }
     }
 
@@ -108,6 +144,25 @@ struct SettingsView: View {
         defaults.set(false, forKey: "suppressOverwriteConfirmation")
         for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("confirmedAllChanges:") {
             defaults.removeObject(forKey: key)
+        }
+    }
+
+    private func refreshLoginItemStatus() {
+        loginItemStatus = SMAppService.mainApp.status
+    }
+
+    private func setLaunchAtLogin(_ enabled: Bool) {
+        loginItemMessage = nil
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            refreshLoginItemStatus()
+        } catch {
+            refreshLoginItemStatus()
+            loginItemMessage = error.localizedDescription
         }
     }
 }
@@ -154,5 +209,98 @@ final class SettingsWindowController {
         NSApp.activate(ignoringOtherApps: true)
         window.orderFrontRegardless()
         window.makeKeyAndOrderFront(nil)
+    }
+}
+
+private struct HelpView: View {
+    @AppStorage("ollamaLanguage") private var language = "English"
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(t("Using CommitJet", "CommitJet verwenden"))
+                    .font(.title2.bold())
+
+                section(
+                    "Choose a repository", "Repository auswählen",
+                    "Select a local Git repository from the folder button. CommitJet shows its current branch and changed files.",
+                    "Wähle über die Ordnerschaltfläche ein lokales Git-Repository aus. CommitJet zeigt den aktuellen Branch und die geänderten Dateien."
+                )
+                section(
+                    "Create and review a message", "Nachricht erstellen und prüfen",
+                    "Select Sparkles to ask Ollama for a suggestion. Choose the language and level of detail in Settings. You can edit the message before committing. If a message is already present, CommitJet asks before replacing it.",
+                    "Klicke auf Funkeln, um Ollama um einen Vorschlag zu bitten. Sprache und Detailgrad legst du in den Einstellungen fest. Du kannst die Nachricht vor dem Commit bearbeiten. Wenn bereits eine Nachricht vorhanden ist, fragt CommitJet vor dem Ersetzen."
+                )
+                section(
+                    "Create a commit", "Commit erstellen",
+                    "Select Commit to create a local Git commit. CommitJet includes all non-ignored changes, including staged and new files. The first commit in each repository requires confirmation. CommitJet never pushes changes.",
+                    "Klicke auf Commit erstellen, um einen lokalen Git-Commit anzulegen. CommitJet übernimmt alle nicht ignorierten Änderungen, auch vorgemerkte und neue Dateien. Beim ersten Commit in jedem Repository ist eine Bestätigung nötig. CommitJet pusht keine Änderungen."
+                )
+                section(
+                    "Ollama and privacy", "Ollama und Datenschutz",
+                    "AI suggestions are optional. Repository diffs are sent to the configured Ollama server only when you request a suggestion. If the server is remote, its operator can receive that diff. CommitJet uses no telemetry or cloud service.",
+                    "KI-Vorschläge sind optional. Repository-Diffs werden nur dann an den eingestellten Ollama-Server gesendet, wenn du einen Vorschlag anforderst. Bei einem externen Server kann dessen Betreiber den Diff erhalten. CommitJet verwendet weder Telemetrie noch einen Cloud-Dienst."
+                )
+                section(
+                    "Show confirmations again", "Bestätigungen wieder anzeigen",
+                    "If you selected Don't show again for the message replacement prompt, open Settings and select Show confirmations again. This also restores first-commit confirmations.",
+                    "Wenn du beim Ersetzungsdialog Nicht wieder anzeigen gewählt hast, öffne die Einstellungen und klicke auf Bestätigungen wieder anzeigen. Damit werden auch die Bestätigungen für den ersten Commit zurückgesetzt."
+                )
+                section(
+                    "Launch at login", "Beim Anmelden starten",
+                    "Enable Launch at login in Settings to start CommitJet when you sign in to your Mac. macOS may ask you to allow it under General → Login Items.",
+                    "Aktiviere Beim Anmelden starten in den Einstellungen, damit CommitJet beim Anmelden am Mac startet. macOS bittet dich eventuell, die App unter Allgemein → Anmeldeobjekte zu erlauben."
+                )
+            }
+            .padding(28)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 560, height: 560)
+        .background(.regularMaterial)
+    }
+
+    private func section(_ englishTitle: String, _ germanTitle: String, _ englishText: String, _ germanText: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(t(englishTitle, germanTitle))
+                .font(.headline)
+            Text(t(englishText, germanText))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func t(_ english: String, _ german: String) -> String {
+        AppLanguage.text(english, german, language: language)
+    }
+}
+
+@MainActor
+final class HelpWindowController {
+    static let shared = HelpWindowController()
+    private var window: NSWindow?
+
+    func showHelp() {
+        if let window {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        let helpWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 620, height: 620),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        helpWindow.title = AppLanguage.text("CommitJet Help", "CommitJet-Hilfe", language: UserDefaults.standard.string(forKey: "ollamaLanguage") ?? "English")
+        helpWindow.isReleasedWhenClosed = false
+        helpWindow.contentView = NSHostingView(rootView: HelpView())
+        helpWindow.center()
+        window = helpWindow
+        NSApp.activate(ignoringOtherApps: true)
+        helpWindow.makeKeyAndOrderFront(nil)
+    }
+
+    func updateTitle(language: String) {
+        window?.title = AppLanguage.text("CommitJet Help", "CommitJet-Hilfe", language: language)
     }
 }

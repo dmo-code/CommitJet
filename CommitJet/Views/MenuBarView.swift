@@ -23,7 +23,7 @@ struct MenuBarView: View {
                 Spacer(minLength: 0)
                 Button(action: chooseRepository) { Image(systemName: "folder.badge.plus") }
                     .buttonStyle(.borderless).help(t("Choose repository", "Repository auswählen"))
-                Button { Task { await model.refresh() } } label: { Image(systemName: "arrow.clockwise") }
+                Button(action: refreshRepository) { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.borderless).help(t("Refresh status", "Status aktualisieren"))
             }
 
@@ -59,6 +59,14 @@ struct MenuBarView: View {
                         SettingsWindowController.shared.showSettings()
                     }
                 } label: { Label(t("Settings", "Einstellungen"), systemImage: "gear") }
+                    .buttonStyle(.plain)
+                Button {
+                    dismissPopover()
+                    Task { @MainActor in
+                        try? await Task.sleep(nanoseconds: 250_000_000)
+                        HelpWindowController.shared.showHelp()
+                    }
+                } label: { Label(t("Help", "Hilfe"), systemImage: "questionmark.circle") }
                     .buttonStyle(.plain)
                 Spacer()
                 Button(t("Quit", "Beenden")) { NSApplication.shared.terminate(nil) }.buttonStyle(.plain)
@@ -140,6 +148,10 @@ struct MenuBarView: View {
 
     private func chooseRepository() {
         ui.showFolderImporter = true
+    }
+
+    private func refreshRepository() {
+        Task { await model.refresh() }
     }
 
     private func t(_ english: String, _ german: String) -> String {
