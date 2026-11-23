@@ -41,14 +41,14 @@ CommitJet is distributed as an unsigned macOS app outside the App Store. No Appl
 To build a release ZIP locally:
 
 ```sh
-   ./scripts/package-release.sh 1.0.1
+   ./scripts/package-release.sh 1.0.2
 ```
 
-The script writes `CommitJet-1.0.1-macOS.zip` and its SHA-256 checksum under `.build/releases/`. To publish a GitHub Release, push a version tag after committing the release changes:
+The script writes `CommitJet-1.0.2-macOS.zip` and its SHA-256 checksum under `.build/releases/`. To publish a GitHub Release, push a version tag after committing the release changes:
 
 ```sh
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
 Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release.
