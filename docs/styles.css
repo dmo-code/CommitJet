@@ -128,7 +128,7 @@ button { color: inherit; font: inherit; }
 :root[data-theme="dark"] .moon-icon { display: block; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 12px; min-height: 52px; padding: 0 22px; border-radius: 10px; font-size: 15px; font-weight: 700; letter-spacing: -.015em; transition: transform .2s, background .2s, box-shadow .2s; }
 .button:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.14); }
-.button span { font-size: 19px; line-height: 0; }
+.button > span[aria-hidden="true"] { font-size: 19px; line-height: 0; }
 .button-dark { background: #171d28; color: white; }
 :root[data-theme="dark"] .button-dark { background: #f1f3f8; color: #151a23; }
 .button-small { min-height: 40px; padding-inline: 16px; border-radius: 8px; font-size: 14px; }
@@ -352,9 +352,9 @@ h1 span, .section-heading h2 span { color: var(--quiet); }
   .section-heading h2, .workflow-copy h2 { font-size: 38px; }
   .section-heading > p:last-child { font-size: 15px; }
   .feature-grid { grid-template-columns: 1fr; }
-  .feature-large { grid-row: auto; min-height: 460px; }
+  .feature-large { display: flex; flex-direction: column; grid-row: auto; gap: 22px; min-height: 0; }
   .feature-card { min-height: 315px; padding: 24px; }
-  .feature-large .mini-file-list { right: 18px; left: 18px; bottom: 20px; padding-inline: 11px; }
+  .feature-large .mini-file-list { position: relative; right: auto; bottom: auto; left: auto; width: 100%; margin-top: auto; padding-inline: 11px; }
   .feature-ai { min-height: 340px; }
   .feature-branch { min-height: 350px; }
   .branch-illustration { right: 18px; transform: scale(.85); transform-origin: top right; }
