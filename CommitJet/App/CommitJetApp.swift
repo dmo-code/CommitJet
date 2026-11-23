@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 @main
 struct CommitJetApp: App {
@@ -8,14 +9,9 @@ struct CommitJetApp: App {
         MenuBarExtra {
             MenuBarView(model: model)
         } label: {
-            if #available(macOS 15.0, *) {
-                Image(systemName: "airplane.departure")
-                    .accessibilityLabel("CommitJet")
-            } else {
-                Image(systemName: "airplane")
-                    .rotationEffect(.degrees(-45))
-                    .accessibilityLabel("CommitJet")
-            }
+            Image(nsImage: CommitJetMark.image)
+                .renderingMode(.template)
+                .accessibilityLabel("CommitJet")
         }
         .menuBarExtraStyle(.window)
 
@@ -23,4 +19,17 @@ struct CommitJetApp: App {
             SettingsView()
         }
     }
+}
+
+@MainActor
+private enum CommitJetMark {
+    static let image: NSImage = {
+        guard let url = Bundle.main.url(forResource: "airplane-departure-variant", withExtension: "svg"),
+              let image = NSImage(contentsOf: url) else {
+            return NSImage(systemSymbolName: "airplane", accessibilityDescription: "CommitJet")!
+        }
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = true
+        return image
+    }()
 }
