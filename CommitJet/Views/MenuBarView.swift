@@ -145,10 +145,14 @@ struct MenuBarView: View {
             primaryActionButton(title: t("Commit", "Commit erstellen"), icon: "checkmark", isLoading: false, action: confirmAndCommit)
                 .keyboardShortcut(.return, modifiers: .command)
         } else if let sync = model.remoteSyncStatus, canSynchronize(sync) {
-            primaryActionButton(title: syncButtonTitle(sync), icon: "arrow.triangle.2.circlepath", isLoading: false) {
+            let syncTitle = syncButtonTitle(sync)
+            let pendingCount = sync.aheadCount > 0 ? " \(sync.aheadCount) ↑" : ""
+            primaryActionButton(title: syncTitle + pendingCount, icon: "arrow.triangle.2.circlepath", isLoading: false) {
                 Task { await model.synchronizeChanges() }
             }
-            .help(t("Push local commits to the remote", "Lokale Commits zum Remote übertragen"))
+            .help(sync.aheadCount > 0
+                  ? t("Push \(sync.aheadCount) local commits to the remote", "\(sync.aheadCount) lokale Commits zum Remote übertragen")
+                  : t("Publish the local branch to the remote", "Lokalen Branch zum Remote veröffentlichen"))
         } else {
             inactivePrimaryActionButton
         }
