@@ -55,8 +55,7 @@ struct MenuBarView: View {
 
             CommitComposer(message: commitMessageBinding, isWorking: model.isWorking,
                            hasChanges: model.hasStagedChanges,
-                           canUseAI: model.repositoryURL != nil,
-                           colorScheme: resolvedColorScheme) {
+                           canUseAI: model.repositoryURL != nil) {
                 if model.commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Task { await model.generateMessage() }
                 } else {
@@ -71,10 +70,12 @@ struct MenuBarView: View {
                               onStageSelected: { Task { await model.stageSelectedFiles() } },
                               onUnstageSelected: { Task { await model.unstageSelectedFiles() } })
                 .frame(maxHeight: .infinity, alignment: .top)
+                .layoutPriority(-1)
 
             StatusMessages(status: model.statusMessage, error: model.errorMessage)
 
             primaryActionControl
+                .layoutPriority(1)
 
             HStack {
                 settingsButton
@@ -91,6 +92,7 @@ struct MenuBarView: View {
             }
             .font(.caption)
             .foregroundStyle(.secondary)
+            .layoutPriority(1)
         }
         .padding(14)
         .frame(width: 360, height: ui.panelHeight)
@@ -552,9 +554,9 @@ private struct ChangeSummaryView: View {
         if files.isEmpty {
             Text(AppLanguage.text("No changes to commit", "Keine Änderungen zum Committen", language: language)).font(.caption).foregroundStyle(.secondary)
         } else {
-            DisclosureGroup(isExpanded: $isExpanded) {
-                VStack(alignment: .leading, spacing: 9) {
-                    VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 0) {
+                DisclosureGroup(isExpanded: $isExpanded) {
+                    VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text(AppLanguage.text("\(selectedFileIDs.count) of \(files.count) selected", "\(selectedFileIDs.count) von \(files.count) ausgewählt", language: language))
                                 .font(.callout).foregroundStyle(.secondary)
@@ -569,21 +571,34 @@ private struct ChangeSummaryView: View {
                         }
                         .font(.callout)
 
-                        HStack(spacing: 18) {
-                            Button(AppLanguage.text("Stage selected", "Auswahl stagen", language: language), action: onStageSelected)
-                                .buttonStyle(.plain)
+                        HStack(spacing: 8) {
+                            Button(action: onStageSelected) {
+                                Label(AppLanguage.text("Stage selected", "Auswahl stagen", language: language), systemImage: "tray.and.arrow.down")
+                                    .font(.callout.weight(.medium))
+                                    .frame(maxWidth: .infinity)
+                            }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.small)
                                 .disabled(isDisabled || selectedFileIDs.isEmpty)
-                            Button(AppLanguage.text("Unstage selected", "Auswahl unstagen", language: language), action: onUnstageSelected)
-                                .buttonStyle(.plain)
+                            Button(action: onUnstageSelected) {
+                                Label(AppLanguage.text("Unstage selected", "Auswahl unstagen", language: language), systemImage: "tray.and.arrow.up")
+                                    .font(.callout.weight(.medium))
+                                    .frame(maxWidth: .infinity)
+                            }
+                                .buttonStyle(.bordered)
+                                .controlSize(.small)
                                 .disabled(isDisabled || selectedFileIDs.isEmpty)
-                            Spacer(minLength: 0)
                         }
-                        .font(.callout)
-                        .foregroundStyle(Color(red: 0, green: 0.48, blue: 1))
                     }
                     .padding(.horizontal, 2)
                     .padding(.vertical, 3)
+                } label: {
+                    Label(AppLanguage.text("Files (\(selectedFileIDs.count)/\(files.count))", "Dateien (\(selectedFileIDs.count)/\(files.count))", language: language), systemImage: "doc.on.doc")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+                .transaction { $0.animation = nil }
 
+                if isExpanded {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
                             changeGroup(AppLanguage.text("Staged Changes", "Gestagt", language: language),
@@ -594,14 +609,14 @@ private struct ChangeSummaryView: View {
                                         isExpanded: $changesGroupExpanded)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.leading, 18)
                         .padding(.vertical, 4)
                     }
                     .frame(maxHeight: .infinity)
+                    .scrollIndicators(.automatic)
                 }
-            } label: {
-                Label(AppLanguage.text("Files (\(selectedFileIDs.count)/\(files.count))", "Dateien (\(selectedFileIDs.count)/\(files.count))", language: language), systemImage: "doc.on.doc")
-                    .font(.callout).foregroundStyle(.secondary)
             }
+            .frame(maxHeight: .infinity, alignment: .top)
         }
     }
 
@@ -635,6 +650,7 @@ private struct ChangeSummaryView: View {
                 .font(.callout.weight(.semibold))
                 .padding(.vertical, 3)
             }
+            .transaction { $0.animation = nil }
         }
     }
 }
@@ -694,10 +710,10 @@ private struct ChangedFileRow: View {
 
 private struct CommitComposer: View {
     @Binding var message: String
+    @Environment(\.colorScheme) private var colorScheme
     let isWorking: Bool
     let hasChanges: Bool
     let canUseAI: Bool
-    let colorScheme: ColorScheme
     @AppStorage("ollamaLanguage") private var language = "English"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
     @State private var isLengthPickerPresented = false
@@ -706,28 +722,11 @@ private struct CommitComposer: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            TextField(t("Commit message", "Commit-Nachricht"), text: $message, axis: .vertical)
-                .lineLimit(2...)
-                .fixedSize(horizontal: false, vertical: true)
-                .textFieldStyle(.plain)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(minHeight: 54)
-                .background {
-                    RoundedRectangle(cornerRadius: 9)
-                        .fill(colorScheme == .dark
-                              ? Color(red: 0.18, green: 0.18, blue: 0.19).opacity(0.80)
-                              : Color(nsColor: .textBackgroundColor).opacity(0.50))
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 9)
-                        .strokeBorder(
-                            isMessageFocused ? Color.accentColor.opacity(0.8) : Color(nsColor: .separatorColor),
-                            lineWidth: isMessageFocused ? 1.5 : 1
-                        )
-                }
+            commitMessageEditor
+                .font(.body)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 96)
                 .focused($isMessageFocused)
-                .accessibilityLabel(t("Commit message", "Commit-Nachricht"))
             VStack(spacing: 0) {
                 Button(action: onGenerate) {
                     Group {
@@ -765,11 +764,11 @@ private struct CommitComposer: View {
                         Text(t("Suggestion length", "Vorschlagslänge"))
                             .font(.headline)
                         lengthOption("short", title: t("Short", "Kurz"),
-                                     detail: t("Subject only · up to 50 characters", "Nur Betreff · bis 50 Zeichen"))
+                                     detail: t("Concise subject only", "Nur ein knapper Betreff"))
                         lengthOption("long", title: t("Normal", "Normal"),
-                                     detail: t("Subject and one body sentence", "Betreff und ein Satz im Textkörper"))
+                                     detail: t("Brief explanation when useful", "Kurze Erklärung, wenn sinnvoll"))
                         lengthOption("detailed", title: t("Detailed", "Ausführlich"),
-                                     detail: t("Subject and 2–3 body sentences", "Betreff und 2–3 Sätze im Textkörper"))
+                                     detail: t("Relevant context and effects", "Relevanter Kontext und Auswirkungen"))
                     }
                     .padding(12)
                     .frame(width: 240)
@@ -779,6 +778,46 @@ private struct CommitComposer: View {
             .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
             .opacity(canUseAI && !isWorking && hasChanges ? 1 : 0.82)
         }
+    }
+
+    private var commitMessageEditor: some View {
+        ZStack(alignment: .topLeading) {
+            TextEditor(text: $message)
+                .font(.body)
+                .scrollContentBackground(.hidden)
+                .scrollIndicators(.visible)
+                .focused($isMessageFocused)
+                .padding(.leading, 4)
+                .padding(.top, 4)
+
+                if message.isEmpty {
+                    Text(t("Commit message", "Commit-Nachricht"))
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .padding(.leading, 8)
+                        .padding(.top, 4)
+                        .allowsHitTesting(false)
+                }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(editorBackgroundColor, in: RoundedRectangle(cornerRadius: 10))
+        .overlay {
+            RoundedRectangle(cornerRadius: 10)
+                .strokeBorder(editorBorderColor, lineWidth: isMessageFocused ? 1.5 : 1)
+        }
+        .accessibilityLabel(t("Commit message", "Commit-Nachricht"))
+    }
+
+    private var editorBackgroundColor: Color {
+        colorScheme == .dark
+            ? Color(nsColor: .textBackgroundColor).opacity(0.72)
+            : Color(nsColor: .textBackgroundColor).opacity(0.38)
+    }
+
+    private var editorBorderColor: Color {
+        isMessageFocused
+            ? Color.accentColor.opacity(0.45)
+            : Color(nsColor: .separatorColor).opacity(colorScheme == .dark ? 0.75 : 0.5)
     }
 
     private func lengthOption(_ value: String, title: String, detail: String) -> some View {

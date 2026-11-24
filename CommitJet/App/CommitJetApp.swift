@@ -24,9 +24,8 @@ struct CommitJetApp: App {
 @MainActor
 private enum CommitJetMark {
     static let image: NSImage = {
-        guard let url = Bundle.main.url(forResource: "airplane-departure-variant", withExtension: "svg"),
-              let image = NSImage(contentsOf: url) else {
-            return NSImage(systemSymbolName: "airplane", accessibilityDescription: "CommitJet")!
+        guard let image = NSImage(named: NSImage.Name("MenuBarIcon")) else {
+            return NSImage(size: NSSize(width: 22, height: 14))
         }
         image.size = NSSize(width: 22, height: 14)
         image.isTemplate = true

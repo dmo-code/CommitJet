@@ -146,8 +146,9 @@ final class CommitViewModel: ObservableObject {
             let model = preferences.string(forKey: "ollamaModel") ?? ""
             let language = preferences.string(forKey: "ollamaLanguage") ?? "English"
             let messageLength = preferences.string(forKey: "commitMessageLength") ?? "long"
+            let timeout = min(max(preferences.object(forKey: "ollamaRequestTimeoutSeconds") as? Int ?? 120, 45), 600)
             guard !model.isEmpty else { throw OllamaService.OllamaError.noModels }
-            let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language, detail: messageLength)
+            let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language, detail: messageLength, timeout: TimeInterval(timeout))
             commitMessage = answer
             aiFingerprint = diff.fingerprint
             let repositoryName = repositoryURL.lastPathComponent

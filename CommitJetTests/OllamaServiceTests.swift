@@ -12,7 +12,7 @@ final class OllamaServiceTests: XCTestCase {
     func testParsesGeneratedCommitMessage() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [MockURLProtocol.self]
-        MockURLProtocol.responseData = Data("{\"response\":\"```text\\nfix: correct status display\\n```\"}".utf8)
+        MockURLProtocol.responseData = Data("{\"response\":\"{\\\"subject\\\":\\\"fix: correct status display\\\",\\\"body\\\":\\\"\\\"}\"}".utf8)
         MockURLProtocol.statusCode = 200
         let service = OllamaService(session: URLSession(configuration: configuration))
         let answer = try await service.generate(server: "http://localhost:11434", model: "test-model", diff: "diff --git a/a b/a")

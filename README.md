@@ -1,18 +1,14 @@
 # CommitJet
 
-A small native macOS menu bar helper for making local Git commits. CommitJet can ask a local Ollama server to suggest a commit subject, but manual commits work without Ollama.
+A native macOS menu bar app for reviewing Git changes and creating local commits. CommitJet supports selective staging, local branch management, pushing to a configured remote, and optional commit message suggestions from Ollama.
 
-## App preview
+## Product preview
 
-<p align="center">
-  <img src="docs/screenshots/menu-bar-preview.png" alt="CommitJet menu bar interface showing a repository, branch, and staged and unstaged files" width="430">
-</p>
-
-<p align="center"><em>Illustrative interface with sample data, matching the product page.</em></p>
+See the [CommitJet product page](https://dmo-code.github.io/CommitJet/) for an illustrative interface preview with light and dark themes. It uses sample data and is not a live app screenshot.
 
 ## Product page
 
-The static product page lives in `docs/` and is ready for GitHub Pages. It is available in German and English, with the visitor's language choice saved in the browser. In the repository settings, choose **Settings → Pages → GitHub Actions** as the build and deployment source. The workflow in `.github/workflows/pages.yml` publishes updates from `main` whenever `docs/` changes. After the first successful deployment, the page will be available at <https://dmo-code.github.io/CommitJet/>. The page uses a mock app preview to illustrate the interface; its sample repository and commit text are illustrative.
+The static product page lives in `docs/` and is available in German and English, with language and theme choices saved in the browser. Its illustrative app preview follows the selected light or dark theme and uses sample data. In the repository settings, choose **Settings → Pages → GitHub Actions** as the build and deployment source. The workflow in `.github/workflows/pages.yml` publishes updates from `main` whenever `docs/` changes. The public page is <https://dmo-code.github.io/CommitJet/>.
 
 ## Requirements
 
@@ -32,7 +28,7 @@ The app uses SwiftUI `MenuBarExtra` with the native window style and has no Dock
    xcodebuild -project CommitJet.xcodeproj -scheme CommitJet -destination 'platform=macOS' -derivedDataPath /tmp/CommitJetDerived CODE_SIGNING_ALLOWED=NO build
    ```
 
-The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search and switch between local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore it in Settings.
+The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search, create, switch, or delete local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. When a remote can be updated, the main action also offers synchronization or branch publishing. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore confirmations in Settings.
 
 ## Unsigned GitHub releases
 
@@ -71,17 +67,17 @@ To start CommitJet automatically when you sign in to your Mac, enable **Launch a
 
 ## Ollama
 
-Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the commit message language and select a short, normal, or detailed suggestion. Short generates one subject line of at most 50 characters; normal adds one body sentence of at most 20 words; detailed adds 2–3 body sentences of at most 45 words. The selected length is shown beside the Sparkles button and in the ready-to-review status. You can edit the suggestion before committing. In-app Help explains repository selection, message generation, privacy, and confirmation settings.
+Start Ollama locally, install a model (for example `ollama pull qwen2.5-coder`), then open CommitJet's Settings. Keep the server address at `http://localhost:11434`, load models, and select one. Choose English or German as the interface and commit message language, then choose a short, normal, or detailed suggestion. Short produces a concise subject only; normal adds a brief body when it provides useful context; detailed adds relevant context and effects supported by the changes. The selected detail level is shown beside the Sparkles button and in the ready-to-review status. When the suggestion is ready, CommitJet can show a macOS notification; you can edit the message before committing. In-app Help explains repository selection, message generation, privacy, and confirmation settings.
 
-AI generation is optional and only runs after clicking Sparkles. A remote server address triggers a privacy notice; the diff is sent only to that configured endpoint. Requests have a 45 second timeout and diffs larger than 150 KB are refused.
+AI generation is optional and only runs after clicking Sparkles. A remote server address triggers a privacy notice; the diff is sent only to that configured endpoint. The response timeout defaults to 120 seconds and can be set from 45 to 600 seconds in Settings. Diffs larger than 150 KB are refused.
 
 ## Privacy
 
-CommitJet has no telemetry, accounts, or cloud integration. It does not upload Git data automatically. Repository content is not written to app logs. Git diff content is treated as untrusted prompt data and cannot trigger app actions.
+CommitJet has no telemetry, accounts, or cloud services of its own. It does not send Git data automatically. When you request an AI suggestion, the staged diff is sent only to the Ollama address configured in Settings; localhost is the default. Repository content is not written to app logs. Git diff content is treated as untrusted prompt data and cannot trigger app actions.
 
 ## Git behavior and limitations
 
-- CommitJet creates local commits, switches between existing local branches, and pushes commits to a configured remote when you select **Sync changes**. For a branch without an upstream, it publishes the branch to the first configured remote. If the local branch is behind its upstream, pushing is blocked and the remote changes must be pulled with another Git client first.
+- CommitJet creates local commits, creates, switches, and deletes local branches, and pushes commits to a configured remote when you select **Sync changes**. For a branch without an upstream, it publishes the branch to the first configured remote. If the local branch is behind its upstream, pushing is blocked and the remote changes must be pulled with another Git client first.
 - A commit includes only staged changes. Stage selected files to add their current contents to the index, or unstage them to keep those changes out of the commit. The AI suggestion also uses only the staged diff.
 - The first commit in each repository requires confirmation unless you suppress the warning. Changed submodules, unresolved conflicts, and active merge/rebase/cherry-pick/revert/bisect states are refused.
 - Before committing, CommitJet checks that the staged diff still matches the analyzed AI diff.

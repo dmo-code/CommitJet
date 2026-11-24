@@ -181,18 +181,20 @@ struct GitService {
     }
 
     func stage(at url: URL, files: [ChangedFile]) throws {
-        guard !files.isEmpty else { throw GitError.noFilesSelected }
+        let filesToStage = files.filter(\.isUnstaged)
+        guard !filesToStage.isEmpty else { return }
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)
-        let result = try run(["add", "-A", "--"] + pathspecs(for: files), at: root)
+        let result = try run(["add", "-A", "--"] + pathspecs(for: filesToStage), at: root)
         guard result.status == 0 else { throw GitError.command(errorText(result)) }
     }
 
     func unstage(at url: URL, files: [ChangedFile]) throws {
-        guard !files.isEmpty else { throw GitError.noFilesSelected }
+        let filesToUnstage = files.filter(\.isStaged)
+        guard !filesToUnstage.isEmpty else { return }
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)
-        let paths = pathspecs(for: files)
+        let paths = pathspecs(for: filesToUnstage)
         let head = try run(["rev-parse", "--verify", "HEAD"], at: root)
         let result = head.status == 0
             ? try run(["reset", "-q", "HEAD", "--"] + paths, at: root)

@@ -8,6 +8,7 @@ struct SettingsView: View {
     @AppStorage("ollamaLanguage") private var language = "English"
     @AppStorage("appearance") private var appearance = "system"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
+    @AppStorage("ollamaRequestTimeoutSeconds") private var ollamaRequestTimeoutSeconds = 120
     @AppStorage("changeListHeightPercent") private var panelHeightPercent = 60.0
     @StateObject private var ui = SettingsUIState()
     @State private var loginItemStatus = SMAppService.mainApp.status
@@ -159,6 +160,24 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack {
+                        Text(t("Response timeout", "Wartezeit für Antwort"))
+                        Spacer()
+                        TextField("", value: $ollamaRequestTimeoutSeconds,
+                                  format: .number.precision(.fractionLength(0)))
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 76)
+                            .accessibilityLabel(t("Response timeout in seconds", "Wartezeit in Sekunden"))
+                        Text(t("seconds", "Sekunden"))
+                            .foregroundStyle(.secondary)
+                            .fixedSize()
+                    }
+                    .padding(.vertical, 4)
+                    Text(t("Maximum wait for a generated response. Defaults to 120 seconds; choose 45 to 600 seconds.", "Maximale Wartezeit für eine generierte Antwort. Standard: 120 Sekunden; einstellbar von 45 bis 600 Sekunden."))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    HStack {
                         Picker(t("Model", "Modell"), selection: $selectedModel) {
                             if ui.models.isEmpty && !selectedModel.isEmpty { Text(selectedModel).tag(selectedModel) }
                             ForEach(ui.models, id: \.self) { Text($0).tag($0) }
@@ -217,10 +236,15 @@ struct SettingsView: View {
         .onAppear {
             let clampedValue = min(max(panelHeightPercent.rounded(), 45), 85)
             if panelHeightPercent != clampedValue { panelHeightPercent = clampedValue }
+            ollamaRequestTimeoutSeconds = min(max(ollamaRequestTimeoutSeconds, 45), 600)
         }
         .onChange(of: panelHeightPercent) { value in
             let clampedValue = min(max(value.rounded(), 45), 85)
             if value != clampedValue { panelHeightPercent = clampedValue }
+        }
+        .onChange(of: ollamaRequestTimeoutSeconds) { value in
+            let clampedValue = min(max(value, 45), 600)
+            if value != clampedValue { ollamaRequestTimeoutSeconds = clampedValue }
         }
     }
 
@@ -247,7 +271,7 @@ struct SettingsView: View {
         defer { checkingForUpdates = false }
         do {
             updateInfo = try await UpdateService().latestRelease()
-            if updateAvailable, let updateInfo {
+            if updateAvailable {
                 updateMessage = nil
             } else {
                 updateMessage = t("You’re up to date.", "Du verwendest die aktuelle Version.")
@@ -281,11 +305,11 @@ struct SettingsView: View {
     private var commitMessageLengthDescription: String {
         switch commitMessageLength {
         case "short":
-            t("Short: one subject line, at most 50 characters, no body.", "Kurz: eine Betreffzeile mit höchstens 50 Zeichen, ohne Textkörper.")
+            t("Short: subject only. Keep it concise without cutting off the description.", "Kurz: nur der Betreff. Knapp formuliert, ohne die Beschreibung abzuschneiden.")
         case "detailed":
-            t("Detailed: a subject plus 2–3 body sentences, at most 45 words. Lines wrap at 72 characters.", "Ausführlich: Betreff plus 2–3 Sätze im Textkörper, höchstens 45 Wörter. Zeilen werden bei 72 Zeichen umbrochen.")
+            t("Detailed: add the relevant context and effects supported by the changes.", "Ausführlich: ergänze belegbaren Kontext und die Auswirkungen der Änderungen.")
         default:
-            t("Normal: a subject plus one body sentence, at most 20 words. Lines wrap at 72 characters.", "Normal: Betreff plus ein Satz im Textkörper, höchstens 20 Wörter. Zeilen werden bei 72 Zeichen umbrochen.")
+            t("Normal: add a brief explanation when it provides useful context.", "Normal: ergänze eine kurze Erklärung, wenn sie nützlichen Kontext bietet.")
         }
     }
 
