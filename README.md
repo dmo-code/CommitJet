@@ -30,9 +30,9 @@ The app uses SwiftUI `MenuBarExtra` with the native window style and has no Dock
 
 The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search, create, switch, or delete local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. When a remote can be updated, the main action also offers synchronization or branch publishing. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore confirmations in Settings.
 
-## Unsigned GitHub releases
+## GitHub releases without Developer ID signing
 
-CommitJet is distributed as an unsigned macOS app outside the App Store. No Apple Developer account is required for this release path. The app targets macOS 13 and later and is packaged for both Apple silicon and Intel Macs.
+CommitJet is distributed outside the App Store with an ad-hoc signature. It is not signed with a Developer ID certificate or notarized, so macOS may show a security warning when you first open it. No Apple Developer account is required for this release path. The app targets macOS 13 and later and is packaged for both Apple silicon and Intel Macs.
 
 To build a release ZIP locally:
 
@@ -47,13 +47,13 @@ git tag v1.0.2
 git push origin v1.0.2
 ```
 
-Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release.
+Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the app with an ad-hoc signature and attaches the ZIP and checksum to a GitHub Release. If `.github/release-notes/<tag>.md` exists, the workflow uses it as the release description; otherwise it generates notes from the commits.
 
 CommitJet checks GitHub Releases for updates when Settings opens. If a newer version is available, Settings shows its release notes and can download the macOS ZIP with a visible progress indicator. Before saving the ZIP to Downloads, CommitJet verifies it against the release's SHA-256 checksum. Open the downloaded ZIP and move `CommitJet.app` to Applications to replace the installed version.
 
 ### Opening the downloaded app
 
-Because CommitJet is not signed or notarized, macOS may say that Apple cannot check it for malicious software. If you downloaded CommitJet from the official [GitHub Releases page](https://github.com/dmo-code/CommitJet/releases) and want to open it:
+Because CommitJet is not signed with a Developer ID certificate or notarized, macOS may say that Apple cannot check it for malicious software. If you downloaded CommitJet from the official [GitHub Releases page](https://github.com/dmo-code/CommitJet/releases) and want to open it:
 
 1. Double-click the downloaded ZIP to extract `CommitJet.app`, then move the app to your **Applications** folder.
 2. Try to open CommitJet once. When macOS shows the warning, click **Done**; do not choose **Move to Trash**.

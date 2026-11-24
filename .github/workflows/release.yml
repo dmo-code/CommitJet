@@ -1,4 +1,4 @@
-name: Build unsigned macOS release
+name: Build macOS release (ad-hoc signed)
 
 on:
   push:
@@ -23,8 +23,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            .build/releases/CommitJet-*-macOS.zip \
-            .build/releases/CommitJet-*-macOS.zip.sha256 \
-            --generate-notes \
-            --title "CommitJet $GITHUB_REF_NAME"
+          NOTES_FILE=".github/release-notes/$GITHUB_REF_NAME.md"
+          if [[ -f "$NOTES_FILE" ]]; then
+            gh release create "$GITHUB_REF_NAME" \
+              .build/releases/CommitJet-*-macOS.zip \
+              .build/releases/CommitJet-*-macOS.zip.sha256 \
+              --notes-file "$NOTES_FILE" \
+              --title "CommitJet $GITHUB_REF_NAME"
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              .build/releases/CommitJet-*-macOS.zip \
+              .build/releases/CommitJet-*-macOS.zip.sha256 \
+              --generate-notes \
+              --title "CommitJet $GITHUB_REF_NAME"
+          fi

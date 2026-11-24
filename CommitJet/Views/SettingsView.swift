@@ -214,7 +214,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(t("Privacy", "Datenschutz"))
                     .font(.headline)
-                Text(t("CommitJet does not use cloud services or telemetry. Git data is sent only to Ollama after you click the Sparkles button.", "CommitJet verwendet keine Cloud-Dienste und keine Telemetrie. Git-Daten werden erst nach einem Klick auf die Funkeln-Schaltfläche an Ollama gesendet."))
+                Text(t("CommitJet uses no cloud services or telemetry. Git data is not sent automatically. When you request an AI message, the staged diff goes to the configured Ollama server. When you synchronize, local commits are pushed to the configured Git remote.", "CommitJet verwendet keine Cloud-Dienste und keine Telemetrie. Git-Daten werden nicht automatisch übertragen. Wenn du eine KI-Nachricht anforderst, wird der gestagte Diff an den eingestellten Ollama-Server gesendet. Beim Synchronisieren werden lokale Commits zum eingerichteten Git-Remote übertragen."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
