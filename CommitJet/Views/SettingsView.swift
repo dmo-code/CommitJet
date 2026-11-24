@@ -13,6 +13,20 @@ struct SettingsView: View {
     @State private var loginItemStatus = SMAppService.mainApp.status
     @State private var loginItemMessage: String?
     @State private var confirmationsRestored = false
+    @State private var updateInfo: UpdateService.Release?
+    @State private var updateMessage: String?
+    @State private var checkingForUpdates = false
+    @State private var downloadingUpdate = false
+    @State private var downloadProgress: Double?
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+    }
+
+    private var updateAvailable: Bool {
+        guard let updateInfo else { return false }
+        return UpdateService.isNewer(updateInfo.version, than: appVersion)
+    }
 
     private var isNonLocal: Bool {
         guard let host = URLComponents(string: server)?.host?.lowercased() else { return false }
@@ -23,6 +37,64 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 18) {
             Form {
                 Section(t("General", "Allgemein")) {
+                    LabeledContent(t("Version", "Version"), value: appVersion)
+                    Button(t("Check for Updates", "Nach Updates suchen")) {
+                        Task { await checkForUpdates() }
+                    }
+                    .disabled(checkingForUpdates || downloadingUpdate)
+                    if checkingForUpdates {
+                        Text(t("Checking for updates…", "Suche nach Updates …"))
+                            .font(.caption).foregroundStyle(.secondary)
+                    } else if downloadingUpdate {
+                        VStack(alignment: .leading, spacing: 5) {
+                            if let downloadProgress {
+                                ProgressView(value: downloadProgress)
+                                Text(t("Downloading update: \(Int(downloadProgress * 100))%", "Update wird geladen: \(Int(downloadProgress * 100)) %"))
+                            } else {
+                                ProgressView()
+                                Text(t("Downloading update…", "Update wird geladen …"))
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    } else if let updateMessage {
+                        Text(updateMessage)
+                            .font(.caption).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if updateAvailable, let updateInfo {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Label(t("Version \(updateInfo.version) available", "Version \(updateInfo.version) verfügbar"), systemImage: "arrow.down.circle.fill")
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                Link(t("Release notes", "Versionshinweise"), destination: updateInfo.releaseURL)
+                                    .font(.caption)
+                            }
+                            if !updateInfo.notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                ScrollView {
+                                    Text(.init(updateInfo.notes))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .frame(maxHeight: 90)
+                            }
+                            Button {
+                                Task { await downloadUpdate(updateInfo) }
+                            } label: {
+                                Label(t("Download and verify update", "Update laden und prüfen"), systemImage: "arrow.down.to.line")
+                            }
+                            .disabled(downloadingUpdate || checkingForUpdates)
+                            Text(t("The ZIP is checked against its published SHA-256 checksum before it is saved.", "Das ZIP wird vor dem Speichern mit der veröffentlichten SHA-256-Prüfsumme abgeglichen."))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(.vertical, 4)
+                    }
                     Picker(t("Appearance", "Erscheinungsbild"), selection: $appearance) {
                         Text(t("System", "System")).tag("system")
                         Text(t("Light", "Hell")).tag("light")
@@ -135,6 +207,7 @@ struct SettingsView: View {
         .preferredColorScheme(preferredColorScheme)
         .task {
             refreshLoginItemStatus()
+            await checkForUpdates(silent: true)
             await loadModels(silent: true)
         }
         .onChange(of: language) { value in
@@ -167,6 +240,38 @@ struct SettingsView: View {
         defer { ui.working = false }
         do { try await OllamaService().test(server: server); ui.message = t("Connection successful.", "Verbindung erfolgreich.") }
         catch { ui.message = error.localizedDescription }
+    }
+
+    private func checkForUpdates(silent: Bool = false) async {
+        checkingForUpdates = true
+        defer { checkingForUpdates = false }
+        do {
+            updateInfo = try await UpdateService().latestRelease()
+            if updateAvailable, let updateInfo {
+                updateMessage = nil
+            } else {
+                updateMessage = t("You’re up to date.", "Du verwendest die aktuelle Version.")
+            }
+        } catch {
+            if !silent {
+                updateMessage = t("Could not check for updates: \(error.localizedDescription)", "Updates konnten nicht gesucht werden: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func downloadUpdate(_ release: UpdateService.Release) async {
+        downloadingUpdate = true
+        downloadProgress = nil
+        defer { downloadingUpdate = false }
+        do {
+            let fileURL = try await UpdateService().download(release) { progress in
+                downloadProgress = progress
+            }
+            NSWorkspace.shared.activateFileViewerSelecting([fileURL])
+            updateMessage = t("Update downloaded and verified. Open the ZIP and move CommitJet.app to Applications to replace the current version.", "Update geladen und geprüft. Öffne das ZIP und verschiebe CommitJet.app in Programme, um die vorhandene Version zu ersetzen.")
+        } catch {
+            updateMessage = t("Could not download update: \(error.localizedDescription)", "Update konnte nicht geladen werden: \(error.localizedDescription)")
+        }
     }
 
     private func t(_ english: String, _ german: String) -> String {

@@ -53,6 +53,8 @@ git push origin v1.0.2
 
 Pushing a `v*` tag runs the GitHub Actions release workflow, which builds the unsigned app and attaches the ZIP and checksum to a GitHub Release.
 
+CommitJet checks GitHub Releases for updates when Settings opens. If a newer version is available, Settings shows its release notes and can download the macOS ZIP with a visible progress indicator. Before saving the ZIP to Downloads, CommitJet verifies it against the release's SHA-256 checksum. Open the downloaded ZIP and move `CommitJet.app` to Applications to replace the installed version.
+
 ### Opening the downloaded app
 
 Because CommitJet is not signed or notarized, macOS may say that Apple cannot check it for malicious software. If you downloaded CommitJet from the official [GitHub Releases page](https://github.com/dmo-code/CommitJet/releases) and want to open it:
