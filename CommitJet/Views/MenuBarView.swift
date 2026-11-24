@@ -74,37 +74,7 @@ struct MenuBarView: View {
 
             StatusMessages(status: model.statusMessage, error: model.errorMessage)
 
-            if let sync = model.remoteSyncStatus, sync.hasRemote {
-                Button {
-                    Task { await model.synchronizeChanges() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if model.isWorking { ProgressView().controlSize(.small) }
-                        else { Image(systemName: sync.behindCount > 0 ? "arrow.down.circle" : "arrow.triangle.2.circlepath") }
-                        Text(syncButtonTitle(sync))
-                        if sync.aheadCount > 0 {
-                            Text("\(sync.aheadCount) ↑")
-                                .font(.caption.weight(.semibold).monospacedDigit())
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .center)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.isWorking || !sync.hasCommit || sync.behindCount > 0 || (sync.aheadCount == 0 && sync.upstream != nil))
-                .help(sync.behindCount > 0
-                      ? t("This branch is behind its remote. Pull changes in your Git client first.", "Dieser Branch liegt hinter dem Remote. Hole die Änderungen zuerst mit deinem Git-Client.")
-                      : !sync.hasCommit
-                        ? t("Create a commit before publishing this branch", "Erstelle zuerst einen Commit, bevor du den Branch veröffentlichst")
-                        : t("Push local commits to the remote", "Lokale Commits zum Remote übertragen"))
-            }
-
-            Button(action: confirmAndCommit) {
-                if model.isWorking { ProgressView().controlSize(.small).frame(maxWidth: .infinity) }
-                else { Text(t("Commit", "Commit erstellen")).frame(maxWidth: .infinity) }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(!model.canCommit)
-            .keyboardShortcut(.return, modifiers: .command)
+            primaryActionControl
 
             HStack {
                 settingsButton
@@ -146,6 +116,81 @@ struct MenuBarView: View {
         .alert("CommitJet", isPresented: $ui.showError, presenting: model.errorMessage) { _ in
             Button("OK") { model.errorMessage = nil }
         } message: { error in Text(error) }
+    }
+
+    @ViewBuilder
+    private var primaryActionControl: some View {
+        if model.isCommitting {
+            primaryActionButton(title: t("Creating commit…", "Commit wird erstellt …"), icon: "checkmark", isLoading: true) {}
+                .disabled(true)
+        } else if model.isSynchronizing {
+            primaryActionButton(title: t("Synchronizing…", "Synchronisieren …"), icon: "arrow.triangle.2.circlepath", isLoading: true) {}
+                .disabled(true)
+        } else if model.isWorking {
+            inactivePrimaryActionButton
+        } else if model.canCommit {
+            primaryActionButton(title: t("Commit", "Commit erstellen"), icon: "checkmark", isLoading: false, action: confirmAndCommit)
+                .keyboardShortcut(.return, modifiers: .command)
+        } else if let sync = model.remoteSyncStatus, canSynchronize(sync) {
+            primaryActionButton(title: syncButtonTitle(sync), icon: "arrow.triangle.2.circlepath", isLoading: false) {
+                Task { await model.synchronizeChanges() }
+            }
+            .help(t("Push local commits to the remote", "Lokale Commits zum Remote übertragen"))
+        } else {
+            inactivePrimaryActionButton
+        }
+    }
+
+    private var inactivePrimaryActionButton: some View {
+        let status = primaryActionStatus
+        return primaryActionButton(title: status.title, icon: status.icon, isLoading: false) {}
+            .disabled(true)
+    }
+
+    private func primaryActionButton(
+        title: String,
+        icon: String,
+        isLoading: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Group {
+                    if isLoading { ProgressView().controlSize(.small) }
+                    else { Image(systemName: icon) }
+                }
+                .frame(width: 16)
+                Text(title).lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    private var primaryActionStatus: (title: String, icon: String) {
+        if model.repositoryURL == nil {
+            return (t("Choose a repository", "Repository auswählen"), "folder")
+        }
+        if model.isWorking {
+            return (model.statusMessage ?? t("Working…", "Wird verarbeitet …"), "arrow.triangle.2.circlepath")
+        }
+        if model.hasStagedChanges && model.commitMessage.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return (t("Enter a commit message", "Commit-Nachricht eingeben"), "text.alignleft")
+        }
+        if let sync = model.remoteSyncStatus {
+            if sync.behindCount > 0 {
+                return (t("Remote changes need to be pulled", "Remote-Änderungen müssen erst geholt werden"), "arrow.down.circle")
+            }
+            if sync.hasRemote && sync.upstream != nil && sync.aheadCount == 0 {
+                return (t("Up to date", "Synchronisiert"), "checkmark.circle")
+            }
+            if !sync.hasCommit {
+                return (t("No commits to publish", "Keine Commits zum Veröffentlichen"), "checkmark.circle")
+            }
+        }
+        return (t("No staged changes", "Keine vorgemerkten Änderungen"), "checkmark.circle")
     }
 
     private func confirmAndCommit() {
@@ -236,6 +281,10 @@ struct MenuBarView: View {
 
     private var surfaceOpacity: Double {
         resolvedColorScheme == .dark ? 0.80 : 0.50
+    }
+
+    private func canSynchronize(_ status: RemoteSyncStatus) -> Bool {
+        status.hasCommit && status.behindCount == 0 && (status.aheadCount > 0 || status.upstream == nil)
     }
 
     private func syncButtonTitle(_ status: RemoteSyncStatus) -> String {

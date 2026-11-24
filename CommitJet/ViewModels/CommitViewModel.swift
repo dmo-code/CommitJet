@@ -10,6 +10,8 @@ final class CommitViewModel: ObservableObject {
     @Published private(set) var selectedFileIDs: Set<String> = []
     @Published var commitMessage = ""
     @Published private(set) var isWorking = false
+    @Published private(set) var isCommitting = false
+    @Published private(set) var isSynchronizing = false
     @Published var statusMessage: String?
     @Published var errorMessage: String?
     private var aiFingerprint: String?
@@ -123,8 +125,10 @@ final class CommitViewModel: ObservableObject {
             acknowledgeFirstCommit()
         }
         isWorking = true
+        isCommitting = true
         statusMessage = nil
         defer { isWorking = false }
+        defer { isCommitting = false }
         let message = commitMessage
         let fingerprint = aiFingerprint
         let files = snapshot?.changedFiles ?? []
@@ -145,9 +149,11 @@ final class CommitViewModel: ObservableObject {
               currentStatus.hasRemote, currentStatus.behindCount == 0,
               currentStatus.aheadCount > 0 || currentStatus.upstream == nil else { return }
         isWorking = true
+        isSynchronizing = true
         statusMessage = nil
         errorMessage = nil
         defer { isWorking = false }
+        defer { isSynchronizing = false }
         do {
             try await Task.detached { try self.git.push(at: repositoryURL, syncStatus: currentStatus) }.value
             remoteSyncStatus = try await Task.detached { try self.git.remoteSyncStatus(at: repositoryURL) }.value
