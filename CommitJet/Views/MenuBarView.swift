@@ -491,10 +491,10 @@ private struct ChangeSummaryView: View {
                         .font(.caption2)
 
                         HStack(spacing: 18) {
-                            Button(AppLanguage.text("Stage selected", "Auswahl vormerken", language: language), action: onStageSelected)
+                            Button(AppLanguage.text("Stage selected", "Auswahl stagen", language: language), action: onStageSelected)
                                 .buttonStyle(.plain)
                                 .disabled(isDisabled || selectedFileIDs.isEmpty)
-                            Button(AppLanguage.text("Unstage selected", "Vormerkung aufheben", language: language), action: onUnstageSelected)
+                            Button(AppLanguage.text("Unstage selected", "Auswahl unstagen", language: language), action: onUnstageSelected)
                                 .buttonStyle(.plain)
                                 .disabled(isDisabled || selectedFileIDs.isEmpty)
                             Spacer(minLength: 0)
@@ -507,10 +507,12 @@ private struct ChangeSummaryView: View {
 
                     ScrollView {
                         VStack(alignment: .leading, spacing: 8) {
-                            changeGroup(AppLanguage.text("Staged Changes", "Gestagete Änderungen", language: language),
-                                        files: files.filter(\.isStaged), isExpanded: $stagedGroupExpanded)
-                            changeGroup(AppLanguage.text("Changes", "Änderungen", language: language),
-                                        files: files.filter(\.isUnstaged), isExpanded: $changesGroupExpanded)
+                            changeGroup(AppLanguage.text("Staged Changes", "Gestagt", language: language),
+                                        files: files.filter(\.isStaged), isStagedGroup: true,
+                                        isExpanded: $stagedGroupExpanded)
+                            changeGroup(AppLanguage.text("Changes", "Nicht gestagt", language: language),
+                                        files: files.filter(\.isUnstaged), isStagedGroup: false,
+                                        isExpanded: $changesGroupExpanded)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.vertical, 4)
@@ -525,7 +527,8 @@ private struct ChangeSummaryView: View {
     }
 
     @ViewBuilder
-    private func changeGroup(_ title: String, files: [ChangedFile], isExpanded: Binding<Bool>) -> some View {
+    private func changeGroup(_ title: String, files: [ChangedFile], isStagedGroup: Bool,
+                             isExpanded: Binding<Bool>) -> some View {
         if !files.isEmpty {
             DisclosureGroup(isExpanded: isExpanded) {
                 VStack(alignment: .leading, spacing: 6) {
@@ -537,10 +540,21 @@ private struct ChangeSummaryView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
+                .padding(.leading, 7)
+                .padding(.vertical, 5)
             } label: {
-                Text("\(title) (\(files.count))")
-                    .font(.caption)
+                HStack(spacing: 6) {
+                    Image(systemName: isStagedGroup ? "checkmark.circle" : "circle")
+                        .foregroundStyle(isStagedGroup ? Color.green : Color.secondary)
+                    Text(title)
+                        .foregroundStyle(.primary)
+                    Text("\(files.count)")
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                }
+                .font(.caption.weight(.semibold))
+                .padding(.vertical, 3)
             }
         }
     }
