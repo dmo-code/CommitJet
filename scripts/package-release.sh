@@ -38,6 +38,12 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
+# Keep the app's code-signing identifier aligned with its bundle identifier.
+# This is an ad-hoc signature, so it does not require a Developer ID certificate.
+APP_BUNDLE_IDENTIFIER=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP_PATH/Contents/Info.plist")
+codesign --force --deep --sign - --identifier "$APP_BUNDLE_IDENTIFIER" "$APP_PATH"
+codesign --verify --deep --strict "$APP_PATH"
+
 ditto -c -k --sequesterRsrc --keepParent "$APP_PATH" "$ZIP_PATH"
 (cd "$OUTPUT_DIR" && shasum -a 256 "$(basename "$ZIP_PATH")" > "$(basename "$ZIP_PATH").sha256")
 

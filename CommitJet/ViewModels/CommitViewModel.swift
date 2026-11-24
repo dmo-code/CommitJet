@@ -150,6 +150,16 @@ final class CommitViewModel: ObservableObject {
             let answer = try await OllamaService().generate(server: server, model: model, diff: diff.text, language: language, detail: messageLength)
             commitMessage = answer
             aiFingerprint = diff.fingerprint
+            let repositoryName = repositoryURL.lastPathComponent
+            let notificationLanguage = preferences.string(forKey: "ollamaLanguage") ?? "English"
+            let notificationMessage = answer.components(separatedBy: .newlines).first ?? answer
+            Task {
+                await NotificationService.notifyCommitMessageReady(
+                    repositoryName: repositoryName,
+                    message: notificationMessage,
+                    language: notificationLanguage
+                )
+            }
             let lengthLabel: (String, String)
             switch messageLength {
             case "short": lengthLabel = ("Short", "Kurz")
