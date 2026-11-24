@@ -141,27 +141,97 @@ struct MenuBarView: View {
                 .disabled(true)
         } else if model.isWorking {
             inactivePrimaryActionButton
+        } else if let sync = model.remoteSyncStatus, canSynchronize(sync), model.hasStagedChanges {
+            commitSplitButton(for: sync)
         } else if model.canCommit {
             primaryActionButton(title: t("Commit", "Commit erstellen"), icon: "checkmark", isLoading: false, action: confirmAndCommit)
                 .keyboardShortcut(.return, modifiers: .command)
         } else if let sync = model.remoteSyncStatus, canSynchronize(sync) {
-            let syncTitle = syncButtonTitle(sync)
-            let pendingCount = sync.aheadCount > 0 ? " \(sync.aheadCount) ↑" : ""
-            primaryActionButton(title: syncTitle + pendingCount, icon: "arrow.triangle.2.circlepath", isLoading: false) {
-                Task { await model.synchronizeChanges() }
-            }
-            .help(sync.aheadCount > 0
-                  ? t("Push \(sync.aheadCount) local commits to the remote", "\(sync.aheadCount) lokale Commits zum Remote übertragen")
-                  : t("Publish the local branch to the remote", "Lokalen Branch zum Remote veröffentlichen"))
+            synchronizeButton(for: sync)
         } else {
             inactivePrimaryActionButton
         }
+    }
+
+    private func synchronizeButton(for sync: RemoteSyncStatus) -> some View {
+        let syncTitle = syncButtonTitle(sync)
+        let pendingCount = sync.aheadCount > 0 ? " \(sync.aheadCount) ↑" : ""
+        return primaryActionButton(title: syncTitle + pendingCount, icon: "arrow.triangle.2.circlepath", isLoading: false) {
+            Task { await model.synchronizeChanges() }
+        }
+        .help(sync.aheadCount > 0
+              ? t("Push \(sync.aheadCount) local commits to the remote", "\(sync.aheadCount) lokale Commits zum Remote übertragen")
+              : t("Publish the local branch to the remote", "Lokalen Branch zum Remote veröffentlichen"))
+    }
+
+    private func commitSplitButton(for sync: RemoteSyncStatus) -> some View {
+        HStack(spacing: 0) {
+            Button(action: confirmAndCommit) {
+                HStack(spacing: 8) {
+                    Spacer(minLength: 0)
+                    Image(systemName: "checkmark")
+                        .frame(width: 16)
+                    Text(t("Commit", "Commit erstellen")).lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 40)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!model.canCommit)
+            .opacity(model.canCommit ? 1 : 0.55)
+            .help(model.canCommit
+                  ? t("Commit staged changes", "Gestagete Änderungen committen")
+                  : t("Enter a commit message to commit staged changes", "Commit-Nachricht eingeben, um gestagete Änderungen zu committen"))
+            .keyboardShortcut(.return, modifiers: .command)
+
+            Rectangle()
+                .fill(Color.white.opacity(0.35))
+                .frame(width: 1, height: 22)
+
+            Button {
+                ui.showCommitActionPicker.toggle()
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .help(t("More commit actions", "Weitere Commit-Aktionen"))
+            .accessibilityLabel(t("More commit actions", "Weitere Commit-Aktionen"))
+            .popover(isPresented: $ui.showCommitActionPicker, arrowEdge: .bottom) {
+                Button {
+                    ui.showCommitActionPicker = false
+                    Task { await model.synchronizeChanges() }
+                } label: {
+                    HStack(spacing: 10) {
+                        Label(t("Synchronize changes", "Änderungen synchronisieren"),
+                              systemImage: "arrow.triangle.2.circlepath")
+                        Spacer(minLength: 8)
+                        Text("\(sync.aheadCount) ↑")
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 4)
+                }
+                .buttonStyle(.plain)
+                .padding(12)
+                .frame(width: 230)
+                .foregroundStyle(.primary)
+            }
+        }
+        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var inactivePrimaryActionButton: some View {
         let status = primaryActionStatus
         return primaryActionButton(title: status.title, icon: status.icon, isLoading: false) {}
             .disabled(true)
+            .opacity(0.62)
     }
 
     private func primaryActionButton(
@@ -178,12 +248,16 @@ struct MenuBarView: View {
                     else { Image(systemName: icon) }
                 }
                 .frame(width: 16)
+                .tint(.white)
                 Text(title).lineLimit(1)
                 Spacer(minLength: 0)
             }
-            .frame(maxWidth: .infinity, alignment: .center)
+            .frame(maxWidth: .infinity, minHeight: 40, maxHeight: 40, alignment: .center)
+            .contentShape(RoundedRectangle(cornerRadius: 8))
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.plain)
+        .foregroundStyle(.white)
+        .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var primaryActionStatus: (title: String, icon: String) {
@@ -443,6 +517,7 @@ private final class MenuBarUIState: ObservableObject {
     @Published var showFolderImporter = false
     @Published var showChangedFiles = true
     @Published var showBranchPicker = false
+    @Published var showCommitActionPicker = false
     @Published var branchSearch = ""
     @Published var showCreateBranch = false
     @Published var newBranchName = ""
@@ -482,7 +557,7 @@ private struct ChangeSummaryView: View {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             Text(AppLanguage.text("\(selectedFileIDs.count) of \(files.count) selected", "\(selectedFileIDs.count) von \(files.count) ausgewählt", language: language))
-                                .font(.caption2).foregroundStyle(.secondary)
+                                .font(.callout).foregroundStyle(.secondary)
                             Spacer()
                             Button(AppLanguage.text("All", "Alle", language: language), action: onSelectAll)
                                 .buttonStyle(.plain)
@@ -492,7 +567,7 @@ private struct ChangeSummaryView: View {
                                 .buttonStyle(.plain)
                                 .disabled(isDisabled)
                         }
-                        .font(.caption2)
+                        .font(.callout)
 
                         HStack(spacing: 18) {
                             Button(AppLanguage.text("Stage selected", "Auswahl stagen", language: language), action: onStageSelected)
@@ -503,7 +578,7 @@ private struct ChangeSummaryView: View {
                                 .disabled(isDisabled || selectedFileIDs.isEmpty)
                             Spacer(minLength: 0)
                         }
-                        .font(.caption2)
+                        .font(.callout)
                         .foregroundStyle(Color(red: 0, green: 0.48, blue: 1))
                     }
                     .padding(.horizontal, 2)
@@ -525,7 +600,7 @@ private struct ChangeSummaryView: View {
                 }
             } label: {
                 Label(AppLanguage.text("Files (\(selectedFileIDs.count)/\(files.count))", "Dateien (\(selectedFileIDs.count)/\(files.count))", language: language), systemImage: "doc.on.doc")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(.secondary)
             }
         }
     }
@@ -553,11 +628,11 @@ private struct ChangeSummaryView: View {
                     Text(title)
                         .foregroundStyle(.primary)
                     Text("\(files.count)")
-                        .font(.caption2.monospacedDigit())
+                        .font(.caption.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Spacer(minLength: 0)
                 }
-                .font(.caption.weight(.semibold))
+                .font(.callout.weight(.semibold))
                 .padding(.vertical, 3)
             }
         }
@@ -586,11 +661,11 @@ private struct ChangedFileRow: View {
                 .frame(width: 13)
             VStack(alignment: .leading, spacing: 1) {
                 Text(file.displayPath)
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.system(.callout, design: .monospaced))
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Text(file.state.localizedLabel(language: language))
-                    .font(.system(size: 10))
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
