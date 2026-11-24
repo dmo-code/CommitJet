@@ -603,6 +603,7 @@ private struct CommitComposer: View {
     let colorScheme: ColorScheme
     @AppStorage("ollamaLanguage") private var language = "English"
     @AppStorage("commitMessageLength") private var commitMessageLength = "long"
+    @State private var isLengthPickerPresented = false
     @FocusState private var isMessageFocused: Bool
     let onGenerate: () -> Void
 
@@ -614,6 +615,7 @@ private struct CommitComposer: View {
                 .textFieldStyle(.plain)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
+                .frame(minHeight: 54)
                 .background {
                     RoundedRectangle(cornerRadius: 9)
                         .fill(colorScheme == .dark
@@ -629,21 +631,84 @@ private struct CommitComposer: View {
                 }
                 .focused($isMessageFocused)
                 .accessibilityLabel(t("Commit message", "Commit-Nachricht"))
-            VStack(spacing: 4) {
+            VStack(spacing: 0) {
                 Button(action: onGenerate) {
-                    if isWorking { ProgressView().controlSize(.small) }
-                    else { Image(systemName: "sparkles") }
+                    Group {
+                        if isWorking { ProgressView().controlSize(.small) }
+                        else { Image(systemName: "sparkles") }
+                    }
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white)
+                    .frame(width: 42, height: 32)
+                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
                 .help(t("Generate with Ollama", "Mit Ollama erstellen") + " · " + messageLengthLabel)
                 .disabled(!canUseAI || isWorking || !hasChanges)
                 .accessibilityLabel(t("Generate commit message with Ollama", "Commit-Nachricht mit Ollama erstellen") + " · " + messageLengthLabel)
-                Text(messageLengthLabel)
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+
+                Rectangle()
+                    .fill(Color.white.opacity(0.35))
+                    .frame(width: 18, height: 1)
+
+                Button {
+                    isLengthPickerPresented.toggle()
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 42, height: 21)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help(t("Choose suggestion length", "Vorschlagslänge auswählen"))
+                .accessibilityLabel(t("Suggestion length", "Vorschlagslänge") + ": " + messageLengthLabel)
+                .popover(isPresented: $isLengthPickerPresented, arrowEdge: .bottom) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(t("Suggestion length", "Vorschlagslänge"))
+                            .font(.headline)
+                        lengthOption("short", title: t("Short", "Kurz"),
+                                     detail: t("Subject only · up to 50 characters", "Nur Betreff · bis 50 Zeichen"))
+                        lengthOption("long", title: t("Normal", "Normal"),
+                                     detail: t("Subject and one body sentence", "Betreff und ein Satz im Textkörper"))
+                        lengthOption("detailed", title: t("Detailed", "Ausführlich"),
+                                     detail: t("Subject and 2–3 body sentences", "Betreff und 2–3 Sätze im Textkörper"))
+                    }
+                    .padding(12)
+                    .frame(width: 240)
+                    .foregroundStyle(.primary)
+                }
             }
+            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
+            .opacity(canUseAI && !isWorking && hasChanges ? 1 : 0.82)
         }
+    }
+
+    private func lengthOption(_ value: String, title: String, detail: String) -> some View {
+        Button {
+            commitMessageLength = value
+            isLengthPickerPresented = false
+        } label: {
+            HStack(alignment: .center, spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
+                    Text(detail)
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                if commitMessageLength == value {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(Color.accentColor)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.vertical, 3)
+        }
+        .buttonStyle(.plain)
     }
 
     private var messageLengthLabel: String {
