@@ -647,7 +647,7 @@ private struct ChangedFileRow: View {
     let onToggle: () -> Void
 
     var body: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Button(action: onToggle) {
                 Image(systemName: isSelected ? "checkmark.square.fill" : "square")
                     .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
@@ -655,22 +655,40 @@ private struct ChangedFileRow: View {
             .buttonStyle(.plain)
             .disabled(isDisabled)
             .accessibilityLabel(AppLanguage.text(isSelected ? "Deselect file" : "Select file for staging", isSelected ? "Dateiauswahl aufheben" : "Datei zum Vormerken auswählen", language: language))
-            Image(systemName: file.state.symbolName)
-                .font(.caption2)
-                .foregroundStyle(file.state.tintColor)
-                .frame(width: 13)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(file.displayPath)
-                    .font(.system(.callout, design: .monospaced))
+            Image(nsImage: fileIcon)
+                .resizable()
+                .interpolation(.high)
+                .frame(width: 16, height: 16)
+            HStack(spacing: 5) {
+                Text(file.filename)
                     .lineLimit(1)
                     .truncationMode(.middle)
-                Text(file.state.localizedLabel(language: language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .layoutPriority(1)
+                    .strikethrough(file.state == .deleted)
+                if let directory = file.directoryPath {
+                    Text(directory)
+                        .lineLimit(1)
+                        .truncationMode(.head)
+                        .foregroundStyle(.secondary)
+                        .strikethrough(file.state == .deleted)
+                }
             }
-            Spacer(minLength: 0)
+            .font(.system(.callout, design: .monospaced))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(file.state.shortLabel)
+                .font(.system(.caption, design: .monospaced).weight(.bold))
+                .foregroundStyle(file.state.tintColor)
+                .frame(width: 14, alignment: .trailing)
         }
         .help(file.displayPath)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(file.displayPath), \(file.state.localizedLabel(language: language))")
+    }
+
+    private var fileIcon: NSImage {
+        let fileExtension = (file.filename as NSString).pathExtension
+        let contentType = UTType(filenameExtension: fileExtension) ?? .data
+        return NSWorkspace.shared.icon(for: contentType)
     }
 }
 

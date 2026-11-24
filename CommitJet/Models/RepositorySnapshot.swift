@@ -8,17 +8,6 @@ enum FileChangeState: String, Equatable, Sendable {
     case copied
     case conflicted
 
-    var symbolName: String {
-        switch self {
-        case .added: return "plus"
-        case .modified: return "pencil"
-        case .deleted: return "minus"
-        case .renamed: return "arrow.left.arrow.right"
-        case .copied: return "doc.on.doc"
-        case .conflicted: return "exclamationmark.triangle.fill"
-        }
-    }
-
     var label: String {
         switch self {
         case .added: return "Added"
@@ -27,6 +16,17 @@ enum FileChangeState: String, Equatable, Sendable {
         case .renamed: return "Renamed"
         case .copied: return "Copied"
         case .conflicted: return "Conflict"
+        }
+    }
+
+    var shortLabel: String {
+        switch self {
+        case .added: return "A"
+        case .modified: return "M"
+        case .deleted: return "D"
+        case .renamed: return "R"
+        case .copied: return "C"
+        case .conflicted: return "!"
         }
     }
 }
@@ -40,6 +40,11 @@ struct ChangedFile: Identifiable, Equatable, Sendable {
 
     var id: String { (oldPath ?? "") + "\u{0}" + path }
     var displayPath: String { oldPath.map { "\($0) → \(path)" } ?? path }
+    var filename: String { (path as NSString).lastPathComponent }
+    var directoryPath: String? {
+        let directory = (path as NSString).deletingLastPathComponent
+        return directory.isEmpty || directory == "." ? nil : directory
+    }
 }
 
 struct RepositorySnapshot: Equatable, Sendable {

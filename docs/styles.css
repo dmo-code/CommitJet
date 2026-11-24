@@ -202,14 +202,17 @@ h1 span, .section-heading h2 span { color: var(--quiet); }
 .change-groups { display: flex; flex-direction: column; gap: 11px; }
 .change-group-title { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--app-ink); font-size: 11px; font-weight: 650; }
 .change-group-title .disclosure-chevron { width: 7px; height: 7px; }
-.changed-file { display: flex; align-items: center; gap: 8px; min-height: 34px; padding-left: 2px; }
+.changed-file { display: grid; grid-template-columns: 12px 16px auto minmax(0, 1fr) 14px; align-items: center; gap: 7px; min-height: 30px; padding-left: 2px; }
 .file-check { display: grid; place-items: center; width: 12px; height: 12px; flex: 0 0 12px; border-radius: 2px; background: var(--app-blue); color: white; font-size: 10px; line-height: 1; }
-.state-icon { display: grid; place-items: center; width: 13px; flex: 0 0 13px; font-size: 17px; font-weight: 700; line-height: 1; }
-.state-icon.modified { color: #ff9f0a; font-size: 15px; transform: rotate(-15deg); }
-.state-icon.added { color: #30d158; }
-.changed-file div { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
-.changed-file strong { overflow: hidden; font: 600 10.3px/1.25 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
-.changed-file small { color: var(--app-secondary); font-size: 10px; font-weight: 550; }
+.file-type-icon, .mini-type-icon { display: grid; place-items: center; width: 15px; height: 16px; border-radius: 3px; font: 700 9px/1 -apple-system, BlinkMacSystemFont, sans-serif; }
+.file-type-icon.swift, .mini-type-icon.swift { color: #f47b37; }
+.file-type-icon.json, .mini-type-icon.json { color: #d8a83e; font-size: 7px; }
+.file-name { min-width: 0; overflow: hidden; font: 600 10.3px/1.25 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.file-directory { min-width: 0; overflow: hidden; color: var(--app-secondary); font: 10px/1.25 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.file-status { justify-self: end; font: 700 11px/1 "SFMono-Regular", Menlo, Consolas, monospace; }
+.file-status.modified { color: #d99b43; }
+.file-status.added { color: #55a96d; }
+.file-status.deleted { color: #c66b5f; }
 .panel-bottom { display: flex; flex-direction: column; gap: 11px; margin-top: auto; }
 .panel-bottom button { width: 100%; height: 25px; border: 0; border-radius: 6px; background: #087cff; color: white; font: 600 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
 .panel-bottom button:disabled { opacity: .72; }
@@ -245,12 +248,15 @@ h1 span, .section-heading h2 span { color: var(--quiet); }
 .mini-selection i { color: var(--mini-quiet); font-style: normal; }
 .mini-actions { display: flex; gap: 12px; margin: 8px 0 13px; color: var(--mini-link); font-size: 9px; }
 .mini-group-title { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; color: var(--mini-ink); }
-.mini-file-row { display: grid; grid-template-columns: 11px 12px minmax(0, 1fr) auto; align-items: center; gap: 7px; min-height: 28px; }
+.mini-file-row { display: grid; grid-template-columns: 11px 15px auto minmax(0, 1fr) 12px; align-items: center; gap: 7px; min-height: 28px; }
 .mini-check { display: grid; place-items: center; width: 11px; height: 11px; border-radius: 2px; background: #087cff; color: #fff; font-size: 9px; line-height: 1; }
-.mini-status { color: #30d158; font-size: 15px; font-weight: 700; line-height: 1; }
-.mini-status.modified { color: #ff9f0a; }
-.mini-path { min-width: 0; overflow: hidden; color: var(--mini-ink); font: 10px/1.3 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
-.mini-file-row small { color: var(--mini-secondary); font-size: 9px; white-space: nowrap; }
+.mini-type-icon { height: 14px; }
+.mini-type-icon.swift { color: #e87535; }
+.mini-type-icon.json { color: #b88729; font-size: 7px; }
+.mini-name { min-width: 0; overflow: hidden; color: var(--mini-ink); font: 600 9.5px/1.3 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.mini-directory { min-width: 0; overflow: hidden; color: var(--mini-secondary); font: 9px/1.3 "SFMono-Regular", Menlo, Consolas, monospace; text-overflow: ellipsis; white-space: nowrap; }
+.mini-status { justify-self: end; color: #4d9c65; font: 700 10px/1 "SFMono-Regular", Menlo, Consolas, monospace; }
+.mini-status.modified { color: #d09037; }
 .feature-ai { background: linear-gradient(145deg, var(--surface), color-mix(in srgb, var(--accent-soft) 70%, var(--surface))); }
 .feature-icon { position: absolute; top: 21px; right: 25px; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 11px; background: var(--accent-soft); color: var(--accent); font-size: 21px; }
 .feature-ai h3, .feature-branch h3 { margin-top: 13px; font-size: 24px; }
