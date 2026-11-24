@@ -71,6 +71,28 @@ struct GitService {
         guard result.status == 0 else { throw GitError.command(errorText(result)) }
     }
 
+    func createBranch(at url: URL, named branch: String) throws {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        let name = branch.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { throw GitError.command("Gib einen Branch-Namen ein.") }
+        let validation = try run(["check-ref-format", "--branch", name], at: root)
+        guard validation.status == 0 else { throw GitError.command("Der Branch-Name ist ungültig.") }
+        let result = try run(["switch", "-c", name], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    func deleteBranch(at url: URL, named branch: String) throws {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+        let currentBranch = try run(["branch", "--show-current"], at: root)
+        guard currentBranch.status == 0 else { throw GitError.command(errorText(currentBranch)) }
+        let currentName = String(decoding: currentBranch.stdout, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        guard branch != currentName else { throw GitError.command("Der aktive Branch kann nicht gelöscht werden.") }
+        let result = try run(["branch", "-d", "--", branch], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
     func remoteSyncStatus(at url: URL) throws -> RemoteSyncStatus {
         let root = try repositoryRoot(for: url)
         let branchResult = try run(["symbolic-ref", "--quiet", "--short", "HEAD"], at: root)

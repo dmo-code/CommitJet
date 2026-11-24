@@ -92,6 +92,48 @@ final class CommitViewModel: ObservableObject {
         } catch { errorMessage = error.localizedDescription }
     }
 
+    func createBranch(named branch: String) async {
+        guard let repositoryURL, !isWorking else { return }
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isWorking = false }
+        do {
+            try await Task.detached { try self.git.createBranch(at: repositoryURL, named: branch) }.value
+            if aiFingerprint != nil {
+                commitMessage = ""
+                aiFingerprint = nil
+            }
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
+            remoteSyncStatus = result.sync
+            statusMessage = localized("Created and switched to \(branch)", "Branch \(branch) erstellt und gewechselt")
+        } catch { errorMessage = error.localizedDescription }
+    }
+
+    func deleteBranch(named branch: String) async {
+        guard let repositoryURL, !isWorking, branch != snapshot?.branch else { return }
+        isWorking = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isWorking = false }
+        do {
+            try await Task.detached { try self.git.deleteBranch(at: repositoryURL, named: branch) }.value
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
+            remoteSyncStatus = result.sync
+            statusMessage = localized("Deleted branch \(branch)", "Branch \(branch) gelöscht")
+        } catch { errorMessage = error.localizedDescription }
+    }
+
     func generateMessage() async {
         guard let repositoryURL else { return }
         guard hasStagedChanges else { return }

@@ -105,6 +105,19 @@ struct MenuBarView: View {
             ui.updatePanelHeightForCurrentScreen(percent: value)
         }
         .onChange(of: model.errorMessage) { value in ui.showError = value != nil }
+        .confirmationDialog(t("Delete local branch?", "Lokalen Branch löschen?"), isPresented: $ui.showDeleteBranchConfirmation, titleVisibility: .visible) {
+            Button(t("Delete Branch", "Branch löschen"), role: .destructive) {
+                guard let branch = ui.branchPendingDeletion else { return }
+                ui.branchPendingDeletion = nil
+                ui.showBranchPicker = false
+                Task { await model.deleteBranch(named: branch) }
+            }
+            Button(t("Cancel", "Abbrechen"), role: .cancel) {
+                ui.branchPendingDeletion = nil
+            }
+        } message: {
+            Text(t("This deletes the local branch. Branches with unmerged commits are protected.", "Dadurch wird der lokale Branch gelöscht. Branches mit ungemergten Commits sind geschützt."))
+        }
         .fileImporter(isPresented: $ui.showFolderImporter, allowedContentTypes: [.folder], allowsMultipleSelection: false) { result in
             switch result {
             case .success(let urls):
@@ -310,8 +323,28 @@ struct MenuBarView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(t("Switch branch", "Branch wechseln"))
                 .font(.headline)
-            TextField(t("Search branches", "Branches suchen"), text: $ui.branchSearch)
-                .textFieldStyle(.roundedBorder)
+            HStack(spacing: 6) {
+                TextField(t("Search branches", "Branches suchen"), text: $ui.branchSearch)
+                    .textFieldStyle(.roundedBorder)
+                Button {
+                    ui.showCreateBranch.toggle()
+                    ui.newBranchName = ""
+                } label: {
+                    Image(systemName: ui.showCreateBranch ? "xmark" : "plus")
+                }
+                .buttonStyle(.borderless)
+                .help(ui.showCreateBranch ? t("Cancel branch creation", "Branch-Erstellung abbrechen") : t("Create branch", "Branch erstellen"))
+                .disabled(model.isWorking)
+            }
+            if ui.showCreateBranch {
+                HStack(spacing: 6) {
+                    TextField(t("New branch name", "Neuer Branch-Name"), text: $ui.newBranchName)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit(createBranchFromPicker)
+                    Button(t("Create", "Erstellen"), action: createBranchFromPicker)
+                        .disabled(model.isWorking || ui.newBranchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
             if model.localBranches.isEmpty {
                 Text(t("No local branches found.", "Keine lokalen Branches gefunden."))
                     .font(.caption)
@@ -326,27 +359,44 @@ struct MenuBarView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 2) {
                         ForEach(filteredBranches, id: \.self) { branch in
-                            Button {
-                                ui.showBranchPicker = false
-                                Task { await model.switchBranch(to: branch) }
-                            } label: {
-                                HStack(spacing: 8) {
-                                    Image(systemName: branch == model.snapshot?.branch ? "checkmark.circle.fill" : "circle")
-                                        .foregroundStyle(branch == model.snapshot?.branch ? Color.accentColor : Color.secondary)
-                                    Text(branch).lineLimit(1)
-                                    Spacer(minLength: 0)
-                                    if branch == model.snapshot?.branch {
-                                        Text(t("Current", "Aktiv"))
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                            HStack(spacing: 4) {
+                                Button {
+                                    ui.showBranchPicker = false
+                                    Task { await model.switchBranch(to: branch) }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: branch == model.snapshot?.branch ? "checkmark.circle.fill" : "circle")
+                                            .foregroundStyle(branch == model.snapshot?.branch ? Color.accentColor : Color.secondary)
+                                        Text(branch).lineLimit(1)
+                                        Spacer(minLength: 0)
+                                        if branch == model.snapshot?.branch {
+                                            Text(t("Current", "Aktiv"))
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
                                     }
+                                    .contentShape(Rectangle())
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 6)
                                 }
-                                .contentShape(Rectangle())
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 6)
+                                .buttonStyle(.plain)
+                                .disabled(model.isWorking || branch == model.snapshot?.branch)
+
+                                if branch != model.snapshot?.branch {
+                                    Button {
+                                        ui.branchPendingDeletion = branch
+                                        ui.showDeleteBranchConfirmation = true
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 22, height: 24)
+                                            .contentShape(Rectangle())
+                                    }
+                                    .buttonStyle(.borderless)
+                                    .help(t("Delete local branch", "Lokalen Branch löschen"))
+                                    .disabled(model.isWorking)
+                                }
                             }
-                            .buttonStyle(.plain)
-                            .disabled(model.isWorking || branch == model.snapshot?.branch)
                         }
                     }
                 }
@@ -358,7 +408,16 @@ struct MenuBarView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(12)
-        .frame(width: 280, height: 330, alignment: .topLeading)
+        .frame(width: 300, height: 350, alignment: .topLeading)
+    }
+
+    private func createBranchFromPicker() {
+        let branch = ui.newBranchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !branch.isEmpty, !model.isWorking else { return }
+        ui.newBranchName = ""
+        ui.showCreateBranch = false
+        ui.showBranchPicker = false
+        Task { await model.createBranch(named: branch) }
     }
 
     private func chooseRepository() {
@@ -381,6 +440,10 @@ private final class MenuBarUIState: ObservableObject {
     @Published var showChangedFiles = true
     @Published var showBranchPicker = false
     @Published var branchSearch = ""
+    @Published var showCreateBranch = false
+    @Published var newBranchName = ""
+    @Published var showDeleteBranchConfirmation = false
+    @Published var branchPendingDeletion: String?
     @Published var panelHeight: CGFloat = 540
 
     func updatePanelHeightForCurrentScreen(percent: Double) {
