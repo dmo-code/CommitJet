@@ -41,6 +41,7 @@ final class GitServiceTests: XCTestCase {
     func testCommitAndEmptyRepository() throws {
         try "first".write(to: root.appendingPathComponent("file.txt"), atomically: true, encoding: .utf8)
         XCTAssertThrowsError(try git.commit(at: root, message: "", expectedFingerprint: nil))
+        try stageChanges()
         try git.commit(at: root, message: "feat: initial commit", expectedFingerprint: nil)
         let snapshot = try git.snapshot(at: root)
         XCTAssertFalse(snapshot.hasChanges)
@@ -49,6 +50,7 @@ final class GitServiceTests: XCTestCase {
 
     func testReportsRenamedFile() throws {
         try "contents\n".write(to: root.appendingPathComponent("before.txt"), atomically: true, encoding: .utf8)
+        try stageChanges()
         try git.commit(at: root, message: "docs: add source file", expectedFingerprint: nil)
         try command(["mv", "before.txt", "after.txt"])
         let snapshot = try git.snapshot(at: root)
@@ -59,6 +61,7 @@ final class GitServiceTests: XCTestCase {
 
     func testRespectsGitignore() throws {
         try "*.ignored\n".write(to: root.appendingPathComponent(".gitignore"), atomically: true, encoding: .utf8)
+        try stageChanges()
         try git.commit(at: root, message: "chore: add ignore rule", expectedFingerprint: nil)
         try "private\n".write(to: root.appendingPathComponent("secret.ignored"), atomically: true, encoding: .utf8)
         XCTAssertFalse(try git.snapshot(at: root).hasChanges)
@@ -66,6 +69,12 @@ final class GitServiceTests: XCTestCase {
 
     func testRefusesNestedRepositoryAsSubmodule() throws {
         try command(["init", "-q", "nested"])
+        try command(["-C", "nested", "config", "user.name", "CommitJet Tests"])
+        try command(["-C", "nested", "config", "user.email", "tests@example.invalid"])
+        try "nested file\n".write(to: root.appendingPathComponent("nested/file.txt"), atomically: true, encoding: .utf8)
+        try command(["-C", "nested", "add", "file.txt"])
+        try command(["-C", "nested", "commit", "-qm", "initial commit"])
+        try command(["add", "nested"])
         XCTAssertThrowsError(try git.prepareDiff(at: root)) { error in
             guard case GitService.GitError.changedSubmodule = error else { return XCTFail("Unexpected error: \(error)") }
         }
@@ -93,6 +102,10 @@ final class GitServiceTests: XCTestCase {
         let data = output.fileHandleForReading.readDataToEndOfFile(); process.waitUntilExit()
         guard process.terminationStatus == 0 else { throw NSError(domain: "GitTest", code: Int(process.terminationStatus)) }
         return String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func stageChanges() throws {
+        try git.stage(at: root, files: git.snapshot(at: root).changedFiles)
     }
 
     private func command(_ args: [String]) throws {
