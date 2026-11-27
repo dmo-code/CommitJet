@@ -95,6 +95,7 @@ struct HistoryView: View {
     @StateObject private var model = HistoryViewModel()
     @State private var showingComparison = false
     @State private var showingTextSizePicker = false
+    @State private var splitDragStartWidth: CGFloat?
     @AppStorage("historyTextScale") private var textScale = 1.0
     @AppStorage("historySidebarWidth") private var sidebarWidth = 380.0
     let repositoryURL: URL
@@ -187,8 +188,24 @@ struct HistoryView: View {
     }
 
     private var historyContent: some View {
-        HSplitView {
-            VStack(alignment: .leading, spacing: 10) {
+        GeometryReader { geometry in
+            let maxSidebarWidth = max(280, geometry.size.width - 308)
+            let displayedSidebarWidth = min(max(CGFloat(sidebarWidth), 280), maxSidebarWidth)
+            HStack(spacing: 0) {
+                commitListSidebar
+                    .frame(minWidth: displayedSidebarWidth,
+                           idealWidth: displayedSidebarWidth,
+                           maxWidth: displayedSidebarWidth)
+                    .frame(maxHeight: .infinity)
+                splitDivider(maxSidebarWidth: maxSidebarWidth)
+                commitDetail
+                    .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+        }
+    }
+
+    private var commitListSidebar: some View {
+        VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     Text(t("Branch", "Branch")).font(.caption).foregroundStyle(.secondary)
                     Spacer()
@@ -209,26 +226,41 @@ struct HistoryView: View {
                 .listStyle(.sidebar)
                 .overlay {
                     if !model.isLoading && (model.history?.commits.isEmpty ?? true) {
-                VStack(spacing: 8) {
-                    Image(systemName: "point.3.connected.trianglepath.dotted").font(.title2).foregroundStyle(.tertiary)
-                    Text(t("No commits found", "Keine Commits gefunden")).foregroundStyle(.secondary)
-                }
+                        VStack(spacing: 8) {
+                            Image(systemName: "point.3.connected.trianglepath.dotted").font(.title2).foregroundStyle(.tertiary)
+                            Text(t("No commits found", "Keine Commits gefunden")).foregroundStyle(.secondary)
+                        }
                     }
                 }
             }
-            .frame(minWidth: 280, idealWidth: CGFloat(sidebarWidth), maxHeight: .infinity)
-            .background {
-                GeometryReader { geometry in
-                    Color.clear.preference(key: HistorySidebarWidthPreferenceKey.self, value: geometry.size.width)
+        .padding(.trailing, 4)
+    }
+
+    private func splitDivider(maxSidebarWidth: CGFloat) -> some View {
+        ZStack {
+            Rectangle().fill(Color.clear)
+            Capsule()
+                .fill(Color.secondary.opacity(0.45))
+                .frame(width: 1)
+                .padding(.vertical, 2)
+        }
+        .frame(width: 8)
+        .contentShape(Rectangle())
+        .onHover { hovering in
+            if hovering { NSCursor.resizeLeftRight.push() }
+            else { NSCursor.pop() }
+        }
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    let startWidth = splitDragStartWidth ?? CGFloat(sidebarWidth)
+                    if splitDragStartWidth == nil { splitDragStartWidth = startWidth }
+                    let nextWidth = min(max(startWidth + value.translation.width, 280), maxSidebarWidth)
+                    sidebarWidth = Double(nextWidth)
                 }
-            }
-            commitDetail
-                .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .onPreferenceChange(HistorySidebarWidthPreferenceKey.self) { width in
-            guard width >= 280, abs(sidebarWidth - Double(width)) > 1 else { return }
-            sidebarWidth = Double(width)
-        }
+                .onEnded { _ in splitDragStartWidth = nil }
+        )
+        .help(t("Drag to resize columns", "Ziehen, um die Spaltenbreite zu ändern"))
     }
 
     private var commitDetail: some View {
@@ -349,14 +381,6 @@ struct HistoryView: View {
         .buttonStyle(.plain)
     }
 
-}
-
-private struct HistorySidebarWidthPreferenceKey: PreferenceKey {
-    static let defaultValue: CGFloat = 380
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
 }
 
 private struct GitDiffView: View {
