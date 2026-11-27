@@ -96,6 +96,7 @@ struct HistoryView: View {
     @State private var showingComparison = false
     @State private var showingTextSizePicker = false
     @AppStorage("historyTextScale") private var textScale = 1.0
+    @AppStorage("historySidebarWidth") private var sidebarWidth = 380.0
     let repositoryURL: URL
     let initialBranch: String
 
@@ -215,9 +216,18 @@ struct HistoryView: View {
                     }
                 }
             }
-            .frame(minWidth: 280, idealWidth: 380, maxHeight: .infinity)
+            .frame(minWidth: 280, idealWidth: CGFloat(sidebarWidth), maxHeight: .infinity)
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(key: HistorySidebarWidthPreferenceKey.self, value: geometry.size.width)
+                }
+            }
             commitDetail
                 .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
+        .onPreferenceChange(HistorySidebarWidthPreferenceKey.self) { width in
+            guard width >= 280, abs(sidebarWidth - Double(width)) > 1 else { return }
+            sidebarWidth = Double(width)
         }
     }
 
@@ -298,7 +308,7 @@ struct HistoryView: View {
         .padding(20)
     }
 
-    private func branchPicker(title: String, selection: String, onChange: @escaping (String) -> Void) -> some View {
+    private func branchPicker(title: String, selection: String, onChange: @escaping @Sendable (String) -> Void) -> some View {
         Picker(title, selection: Binding(get: { selection }, set: onChange)) {
             ForEach(model.branches, id: \.self) { Text($0).tag($0) }
         }
@@ -339,6 +349,14 @@ struct HistoryView: View {
         .buttonStyle(.plain)
     }
 
+}
+
+private struct HistorySidebarWidthPreferenceKey: PreferenceKey {
+    static let defaultValue: CGFloat = 380
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
 }
 
 private struct GitDiffView: View {

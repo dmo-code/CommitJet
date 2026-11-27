@@ -419,8 +419,13 @@ private struct HelpView: View {
                 )
                 section(
                     "Review history and compare branches", "Verlauf ansehen und Branches vergleichen",
-                    "Select the history button beside the branch status to inspect recent commits, read commit details and diffs, or compare two local branches. File changes are shown from the branches' common ancestor. The history view is read-only.",
-                    "Klicke auf das Verlaufsymbol neben dem Branch-Status, um aktuelle Commits, Commit-Details und Diffs anzusehen oder zwei lokale Branches zu vergleichen. Dateiänderungen werden ab dem gemeinsamen Vorfahren angezeigt. Die Verlaufsansicht ist schreibgeschützt."
+                    "Open the More menu to inspect recent commits, read commit details and diffs, or compare two local branches. File changes are shown from the branches' common ancestor. The history view is read-only.",
+                    "Öffne das Menü Weitere Aktionen, um aktuelle Commits, Commit-Details und Diffs anzusehen oder zwei lokale Branches zu vergleichen. Dateiänderungen werden ab dem gemeinsamen Vorfahren angezeigt. Die Verlaufsansicht ist schreibgeschützt."
+                )
+                section(
+                    "Keyboard shortcuts", "Tastaturkürzel",
+                    "In the menu bar panel: ⌘O chooses a repository, ⌘R refreshes status, ⇧⌘R fetches and fast-forwards remote changes, and ⇧⌘H opens history. ⌘Return creates a commit. In the history window, ⌘+ and ⌘− change text size, ⌘0 resets it, and Escape closes the window.",
+                    "Im Menüleistenfenster: ⌘O wählt ein Repository aus, ⌘R aktualisiert den Status, ⇧⌘R ruft Remote-Änderungen ab und übernimmt sie per Fast-Forward, und ⇧⌘H öffnet den Verlauf. Mit ⌘Return wird ein Commit erstellt. Im Verlaufsfenster ändern ⌘+ und ⌘− die Textgröße, ⌘0 setzt sie zurück und Escape schließt das Fenster."
                 )
                 section(
                     "Create and review a message", "Nachricht erstellen und prüfen",

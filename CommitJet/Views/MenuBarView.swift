@@ -49,14 +49,17 @@ struct MenuBarView: View {
                     Button(action: chooseRepository) {
                         Label(t("Choose repository", "Repository auswählen"), systemImage: "folder.badge.plus")
                     }
+                    .keyboardShortcut("o", modifiers: .command)
                     .disabled(model.isWorking)
                     Button(action: refreshRepository) {
                         Label(t("Refresh status", "Status aktualisieren"), systemImage: "arrow.clockwise")
                     }
+                    .keyboardShortcut("r", modifiers: .command)
                     .disabled(model.isWorking || model.repositoryURL == nil)
                     Button(action: fetchRemoteChanges) {
                         Label(t("Fetch and pull remote changes", "Remote-Änderungen holen und übernehmen"), systemImage: "arrow.down.circle")
                     }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
                     .disabled(model.isWorking || model.remoteSyncStatus?.upstream == nil)
                     Divider()
                     Button {
@@ -66,6 +69,7 @@ struct MenuBarView: View {
                     } label: {
                         Label(t("History and branch comparison", "Verlauf und Branch-Vergleich"), systemImage: "clock.arrow.circlepath")
                     }
+                    .keyboardShortcut("h", modifiers: [.command, .shift])
                     .disabled(model.repositoryURL == nil || model.snapshot == nil)
                 } label: {
                     Image(systemName: "ellipsis")
@@ -660,11 +664,22 @@ private struct ChangeSummaryView: View {
         }
     }
 
-    @ViewBuilder
     private func changeGroup(_ title: String, files: [ChangedFile], isStagedGroup: Bool,
                              isExpanded: Binding<Bool>) -> some View {
-        if !files.isEmpty {
-            DisclosureGroup(isExpanded: isExpanded) {
+        let tint = isStagedGroup ? Color.green : Color.orange
+        return DisclosureGroup(isExpanded: isExpanded) {
+            if files.isEmpty {
+                Label(
+                    AppLanguage.text(isStagedGroup ? "No changes staged yet" : "No unstaged changes",
+                                     isStagedGroup ? "Noch nichts für den Commit gestagt" : "Keine weiteren Änderungen",
+                                     language: language),
+                    systemImage: isStagedGroup ? "tray" : "checkmark.circle"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 7)
+                .padding(.vertical, 7)
+            } else {
                 VStack(alignment: .leading, spacing: 6) {
                     ForEach(files) { file in
                         ChangedFileRow(file: file, language: language,
@@ -676,22 +691,42 @@ private struct ChangeSummaryView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.leading, 7)
                 .padding(.vertical, 5)
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: isStagedGroup ? "checkmark.circle" : "circle")
-                        .foregroundStyle(isStagedGroup ? Color.green : Color.secondary)
-                    Text(title)
-                        .foregroundStyle(.primary)
-                    Text("\(files.count)")
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Spacer(minLength: 0)
-                }
-                .font(.callout.weight(.semibold))
-                .padding(.vertical, 3)
             }
-            .transaction { $0.animation = nil }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isStagedGroup ? "checkmark.circle.fill" : "circle.dashed")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.callout.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    Text(AppLanguage.text(isStagedGroup ? "Included in the next commit" : "Only in the working tree",
+                                          isStagedGroup ? "Im nächsten Commit enthalten" : "Nur im Arbeitsverzeichnis",
+                                          language: language))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer(minLength: 0)
+                Text("\(files.count)")
+                    .font(.system(.caption, design: .rounded).weight(.semibold).monospacedDigit())
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(tint.opacity(0.12), in: Capsule())
+            }
+            .padding(.vertical, 5)
         }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(tint.opacity(isStagedGroup ? 0.055 : 0.035), in: RoundedRectangle(cornerRadius: 9))
+        .overlay(alignment: .leading) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(tint.opacity(0.75))
+                .frame(width: 3)
+                .padding(.vertical, 6)
+        }
+        .transaction { $0.animation = nil }
     }
 }
 
