@@ -73,3 +73,32 @@ struct PreparedDiff: Sendable {
     let text: String
     let fingerprint: String
 }
+
+struct GitCommit: Identifiable, Equatable, Sendable {
+    let id: String
+    let parents: [String]
+    let author: String
+    let date: String
+    let subject: String
+}
+
+struct CommitHistory: Sendable {
+    let branch: String
+    let commits: [GitCommit]
+}
+
+struct BranchComparison: Sendable {
+    let source: String
+    let target: String
+    let sourceOnlyCount: Int
+    let targetOnlyCount: Int
+    let sourceOnly: [GitCommit]
+    let targetOnly: [GitCommit]
+    let changedPaths: [String]
+}
+
+struct CommitDetails: Sendable {
+    let commit: GitCommit
+    let body: String
+    let diff: String
+}

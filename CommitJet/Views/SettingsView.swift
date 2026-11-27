@@ -418,6 +418,11 @@ private struct HelpView: View {
                     "Klicke auf den aktuellen Branchnamen, um lokale Branches zu durchsuchen und zu wechseln. Git übernimmt passende Änderungen im Arbeitsverzeichnis und verhindert Wechsel, die sie überschreiben würden."
                 )
                 section(
+                    "Review history and compare branches", "Verlauf ansehen und Branches vergleichen",
+                    "Select the history button beside the branch status to inspect recent commits, read commit details and diffs, or compare two local branches. File changes are shown from the branches' common ancestor. The history view is read-only.",
+                    "Klicke auf das Verlaufsymbol neben dem Branch-Status, um aktuelle Commits, Commit-Details und Diffs anzusehen oder zwei lokale Branches zu vergleichen. Dateiänderungen werden ab dem gemeinsamen Vorfahren angezeigt. Die Verlaufsansicht ist schreibgeschützt."
+                )
+                section(
                     "Create and review a message", "Nachricht erstellen und prüfen",
                     "Select Sparkles to ask Ollama for a suggestion. Choose the language and level of detail in Settings. You can edit the message before committing. If a message is already present, CommitJet asks before replacing it.",
                     "Klicke auf Funkeln, um Ollama um einen Vorschlag zu bitten. Sprache und Detailgrad legst du in den Einstellungen fest. Du kannst die Nachricht vor dem Commit bearbeiten. Wenn bereits eine Nachricht vorhanden ist, fragt CommitJet vor dem Ersetzen."

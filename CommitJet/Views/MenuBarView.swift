@@ -45,15 +45,34 @@ struct MenuBarView: View {
                     .foregroundStyle(.secondary)
                 }
                 Spacer(minLength: 0)
-                Button(action: chooseRepository) { Image(systemName: "folder.badge.plus") }
-                    .buttonStyle(.borderless).help(t("Choose repository", "Repository auswählen"))
+                Menu {
+                    Button(action: chooseRepository) {
+                        Label(t("Choose repository", "Repository auswählen"), systemImage: "folder.badge.plus")
+                    }
                     .disabled(model.isWorking)
-                Button(action: refreshRepository) { Image(systemName: "arrow.clockwise") }
-                    .buttonStyle(.borderless).help(t("Refresh status", "Status aktualisieren"))
+                    Button(action: refreshRepository) {
+                        Label(t("Refresh status", "Status aktualisieren"), systemImage: "arrow.clockwise")
+                    }
                     .disabled(model.isWorking || model.repositoryURL == nil)
-                Button(action: fetchRemoteChanges) { Image(systemName: "arrow.down.circle") }
-                    .buttonStyle(.borderless).help(t("Fetch and pull remote changes", "Remote-Änderungen holen und übernehmen"))
+                    Button(action: fetchRemoteChanges) {
+                        Label(t("Fetch and pull remote changes", "Remote-Änderungen holen und übernehmen"), systemImage: "arrow.down.circle")
+                    }
                     .disabled(model.isWorking || model.remoteSyncStatus?.upstream == nil)
+                    Divider()
+                    Button {
+                        if let repository = model.repositoryURL, let branch = model.snapshot?.branch {
+                            HistoryWindowController.shared.show(repository: repository, branch: branch)
+                        }
+                    } label: {
+                        Label(t("History and branch comparison", "Verlauf und Branch-Vergleich"), systemImage: "clock.arrow.circlepath")
+                    }
+                    .disabled(model.repositoryURL == nil || model.snapshot == nil)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .menuStyle(.borderlessButton)
+                .help(t("More actions", "Weitere Aktionen"))
+                .accessibilityLabel(t("More actions", "Weitere Aktionen"))
             }
 
             Divider()

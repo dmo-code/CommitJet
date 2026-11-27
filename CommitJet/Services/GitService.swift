@@ -164,6 +164,70 @@ struct GitService {
         return true
     }
 
+    func commitHistory(at url: URL, branch: String, limit: Int = 100) throws -> CommitHistory {
+        let root = try repositoryRoot(for: url)
+        let reference = try localBranchReference(branch, at: root)
+        let result = try run(["log", "--max-count=\(min(max(limit, 1), 500))", "--format=%H%x00%P%x00%an%x00%aI%x00%s%x00", reference], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+        return CommitHistory(branch: branch, commits: parseCommits(result.stdout))
+    }
+
+    func commitDetails(at url: URL, hash: String) throws -> CommitDetails {
+        let root = try repositoryRoot(for: url)
+        guard hash.count >= 7, hash.allSatisfy(\.isHexDigit) else { throw GitError.command("Ungültige Commit-ID.") }
+        let result = try run(["show", "--no-ext-diff", "--no-renames", "--no-color", "--format=%H%x00%P%x00%an%x00%aI%x00%s%x00%b%x00", hash, "--"], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+        let parts = result.stdout.split(separator: 0, maxSplits: 5, omittingEmptySubsequences: false)
+        guard parts.count >= 6 else { throw GitError.command("Commit-Details konnten nicht gelesen werden.") }
+        let fields = parts.prefix(5).map { String(decoding: $0, as: UTF8.self) }
+        let commit = GitCommit(id: fields[0], parents: fields[1].split(whereSeparator: \.isWhitespace).map(String.init), author: fields[2], date: fields[3], subject: fields[4])
+        let bodyAndDiff = Data(parts[5])
+        let detailEnd = bodyAndDiff.range(of: Data("diff --git ".utf8))?.lowerBound ?? bodyAndDiff.endIndex
+        let body = String(decoding: bodyAndDiff[..<detailEnd], as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+        let diff = String(decoding: bodyAndDiff[detailEnd...], as: UTF8.self)
+        return CommitDetails(commit: commit, body: body, diff: diff)
+    }
+
+    func compareBranches(at url: URL, source: String, target: String) throws -> BranchComparison {
+        let root = try repositoryRoot(for: url)
+        let sourceRef = try localBranchReference(source, at: root)
+        let targetRef = try localBranchReference(target, at: root)
+        let counts = try run(["rev-list", "--left-right", "--count", "\(sourceRef)...\(targetRef)"], at: root)
+        guard counts.status == 0 else { throw GitError.command(errorText(counts)) }
+        let rangeCounts = String(decoding: counts.stdout, as: UTF8.self).split(whereSeparator: \.isWhitespace).compactMap { Int($0) }
+        guard rangeCounts.count == 2 else { throw GitError.command("Branch-Vergleich konnte nicht gelesen werden.") }
+        let sourceOnly = try commits(in: "\(targetRef)..\(sourceRef)", at: root)
+        let targetOnly = try commits(in: "\(sourceRef)..\(targetRef)", at: root)
+        let paths = try run(["diff", "--name-only", "-z", "--no-renames", "\(targetRef)...\(sourceRef)"], at: root)
+        guard paths.status == 0 else { throw GitError.command(errorText(paths)) }
+        let changedPaths = paths.stdout.split(separator: 0, omittingEmptySubsequences: true).map { String(decoding: $0, as: UTF8.self) }
+        return BranchComparison(source: source, target: target, sourceOnlyCount: rangeCounts[0], targetOnlyCount: rangeCounts[1], sourceOnly: sourceOnly, targetOnly: targetOnly, changedPaths: changedPaths)
+    }
+
+    private func commits(in revisionRange: String, at root: URL) throws -> [GitCommit] {
+        let result = try run(["log", "--max-count=200", "--format=%H%x00%P%x00%an%x00%aI%x00%s%x00", revisionRange], at: root)
+        guard result.status == 0 else { throw GitError.command(errorText(result)) }
+        return parseCommits(result.stdout)
+    }
+
+    private func parseCommits(_ data: Data) -> [GitCommit] {
+        let fields = data.split(separator: 0, omittingEmptySubsequences: false).map { String(decoding: $0, as: UTF8.self) }
+        guard fields.count >= 5 else { return [] }
+        return stride(from: 0, through: fields.count - 5, by: 5).compactMap { index in
+            let hash = fields[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !hash.isEmpty else { return nil }
+            return GitCommit(id: hash, parents: fields[index + 1].split(whereSeparator: \.isWhitespace).map(String.init), author: fields[index + 2], date: fields[index + 3], subject: fields[index + 4].trimmingCharacters(in: .newlines))
+        }
+    }
+
+    private func localBranchReference(_ branch: String, at root: URL) throws -> String {
+        guard !branch.isEmpty, !branch.contains("\n") else { throw GitError.command("Branch-Name ist ungültig.") }
+        let reference = "refs/heads/\(branch)"
+        let result = try run(["rev-parse", "--verify", "--quiet", "\(reference)^{commit}"], at: root)
+        guard result.status == 0 else { throw GitError.command("Der lokale Branch \(branch) konnte nicht gefunden werden.") }
+        return reference
+    }
+
     func prepareDiff(at url: URL, files: [ChangedFile]) throws -> PreparedDiff {
         let root = try repositoryRoot(for: url)
         try validateOperationState(at: root)
