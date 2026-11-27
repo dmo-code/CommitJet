@@ -68,7 +68,7 @@ struct MenuBarView: View {
                     }
                     .disabled(model.repositoryURL == nil || model.snapshot == nil)
                 } label: {
-                    Image(systemName: "ellipsis.circle")
+                    Image(systemName: "ellipsis")
                 }
                 .menuStyle(.borderlessButton)
                 .help(t("More actions", "Weitere Aktionen"))
