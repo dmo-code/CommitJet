@@ -12,6 +12,7 @@ final class CommitViewModel: ObservableObject {
     @Published private(set) var isWorking = false
     @Published private(set) var isCommitting = false
     @Published private(set) var isSynchronizing = false
+    @Published private(set) var isPulling = false
     @Published var statusMessage: String?
     @Published var errorMessage: String?
     private var aiFingerprint: String?
@@ -212,6 +213,44 @@ final class CommitViewModel: ObservableObject {
             remoteSyncStatus = try await Task.detached { try self.git.remoteSyncStatus(at: repositoryURL) }.value
             statusMessage = localized("Changes pushed to remote", "Änderungen zum Remote übertragen")
         } catch { errorMessage = error.localizedDescription }
+    }
+
+    func pullRemoteChanges() async {
+        guard let repositoryURL, let currentStatus = remoteSyncStatus,
+              currentStatus.hasRemote, currentStatus.upstream != nil,
+              !isWorking else { return }
+        isWorking = true
+        isPulling = true
+        statusMessage = nil
+        errorMessage = nil
+        defer { isWorking = false }
+        defer { isPulling = false }
+        do {
+            let didPull = try await Task.detached { try self.git.fetchAndFastForward(at: repositoryURL) }.value
+            let result = try await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), branches: try self.git.localBranches(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
+            }.value
+            snapshot = result.snapshot
+            updateSelection(for: result.snapshot)
+            localBranches = result.branches
+            remoteSyncStatus = result.sync
+            if didPull {
+                invalidateGeneratedMessageIfNeeded()
+                statusMessage = localized("Remote changes pulled", "Remote-Änderungen geholt")
+            } else {
+                statusMessage = localized("Remote checked; no changes to pull", "Remote geprüft; keine Änderungen abzurufen")
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            let refreshed = try? await Task.detached {
+                (snapshot: try self.git.snapshot(at: repositoryURL), sync: try self.git.remoteSyncStatus(at: repositoryURL))
+            }.value
+            if let refreshed {
+                snapshot = refreshed.snapshot
+                remoteSyncStatus = refreshed.sync
+                updateSelection(for: refreshed.snapshot)
+            }
+        }
     }
 
     func toggleFileSelection(_ file: ChangedFile) {

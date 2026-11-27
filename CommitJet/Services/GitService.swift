@@ -124,7 +124,7 @@ struct GitService {
         try validateOperationState(at: root)
         guard let remote = syncStatus.remoteName else { throw GitError.command("Für dieses Repository ist kein Remote eingerichtet.") }
         guard syncStatus.hasCommit else { throw GitError.noChanges }
-        guard syncStatus.behindCount == 0 else { throw GitError.command("Der lokale Branch liegt hinter dem Remote. Bitte hole die Remote-Änderungen zuerst mit deinem Git-Client.") }
+        guard syncStatus.behindCount == 0 else { throw GitError.command("Der lokale Branch liegt hinter dem Remote. Hole die Remote-Änderungen zuerst.") }
         guard syncStatus.aheadCount > 0 || syncStatus.upstream == nil else { return }
         var environment = ProcessInfo.processInfo.environment
         environment["GIT_TERMINAL_PROMPT"] = "0"
@@ -133,6 +133,35 @@ struct GitService {
             : ["push"]
         let result = try run(arguments, at: root, environment: environment)
         guard result.status == 0 else { throw GitError.command(errorText(result)) }
+    }
+
+    @discardableResult
+    func fetchAndFastForward(at url: URL) throws -> Bool {
+        let root = try repositoryRoot(for: url)
+        try validateOperationState(at: root)
+
+        let initialStatus = try remoteSyncStatus(at: root)
+        guard let remote = initialStatus.remoteName, let upstream = initialStatus.upstream else {
+            throw GitError.command("Für diesen Branch ist kein Remote-Tracking-Branch eingerichtet.")
+        }
+
+        var environment = ProcessInfo.processInfo.environment
+        environment["GIT_TERMINAL_PROMPT"] = "0"
+        let fetch = try run(["fetch", remote], at: root, environment: environment)
+        guard fetch.status == 0 else { throw GitError.command(errorText(fetch)) }
+
+        let updatedStatus = try remoteSyncStatus(at: root)
+        guard updatedStatus.upstream == upstream else {
+            throw GitError.command("Der Upstream dieses Branches hat sich während des Abrufs geändert. Bitte aktualisiere den Status und versuche es erneut.")
+        }
+        guard updatedStatus.behindCount > 0 else { return false }
+        guard updatedStatus.aheadCount == 0 else {
+            throw GitError.command("Lokaler Branch und Remote sind auseinander gelaufen. Bitte führe Rebase oder Merge in deinem Git-Client aus.")
+        }
+
+        let merge = try run(["merge", "--ff-only", "--no-edit", upstream], at: root)
+        guard merge.status == 0 else { throw GitError.command(errorText(merge)) }
+        return true
     }
 
     func prepareDiff(at url: URL, files: [ChangedFile]) throws -> PreparedDiff {

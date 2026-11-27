@@ -214,7 +214,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(t("Privacy", "Datenschutz"))
                     .font(.headline)
-                Text(t("CommitJet uses no cloud services or telemetry. Git data is not sent automatically. When you request an AI message, the staged diff goes to the configured Ollama server. When you synchronize, local commits are pushed to the configured Git remote.", "CommitJet verwendet keine Cloud-Dienste und keine Telemetrie. Git-Daten werden nicht automatisch übertragen. Wenn du eine KI-Nachricht anforderst, wird der gestagte Diff an den eingestellten Ollama-Server gesendet. Beim Synchronisieren werden lokale Commits zum eingerichteten Git-Remote übertragen."))
+                Text(t("CommitJet uses no cloud services or telemetry. Git data is not sent automatically. When you request an AI message, the staged diff goes to the configured Ollama server. Fetching and synchronizing contact the configured Git remote to receive remote changes or push local commits.", "CommitJet verwendet keine Cloud-Dienste und keine Telemetrie. Git-Daten werden nicht automatisch übertragen. Wenn du eine KI-Nachricht anforderst, wird der gestagte Diff an den eingestellten Ollama-Server gesendet. Beim Abrufen und Synchronisieren verbindet sich CommitJet mit dem eingerichteten Git-Remote, um Änderungen zu holen oder lokale Commits zu pushen."))
                     .font(.caption).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -424,8 +424,8 @@ private struct HelpView: View {
                 )
                 section(
                     "Create a commit", "Commit erstellen",
-                    "Select files and use Stage selected or Unstage selected to manage the Git staging area. Commit creates a local commit from staged changes only. Use Sync changes to push local commits to a configured remote. If your branch is behind its remote, pull those changes with your Git client before pushing.",
-                    "Wähle Dateien aus und nutze Auswahl vormerken oder Vormerkung aufheben, um den Git-Stage zu verwalten. Commit erstellen übernimmt ausschließlich gestagete Änderungen. Über Änderungen synchronisieren pushst du lokale Commits zu einem eingerichteten Remote. Liegt dein Branch hinter dem Remote, hole die Änderungen vor dem Push mit deinem Git-Client."
+                    "Select files and use Stage selected or Unstage selected to manage the Git staging area. Commit creates a local commit from staged changes only. If your branch is behind its upstream, use Pull remote changes to fetch and fast-forward it when safe. If local and remote commits have diverged or Git cannot safely update the working tree, resolve that situation with another Git client. Use Sync changes to push local commits to a configured remote.",
+                    "Wähle Dateien aus und nutze Auswahl vormerken oder Vormerkung aufheben, um den Git-Stage zu verwalten. Commit erstellen übernimmt ausschließlich gestagete Änderungen. Liegt dein Branch hinter dem Upstream, kannst du über Remote-Änderungen holen den Stand abrufen und ihn wenn möglich per Fast-Forward übernehmen. Sind lokale und Remote-Commits auseinander gelaufen oder kann Git das Arbeitsverzeichnis nicht sicher aktualisieren, löse die Situation in einem anderen Git-Client. Über Änderungen synchronisieren pushst du lokale Commits zu einem eingerichteten Remote."
                 )
                 section(
                     "Ollama and privacy", "Ollama und Datenschutz",

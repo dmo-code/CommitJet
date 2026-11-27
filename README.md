@@ -1,6 +1,6 @@
 # CommitJet
 
-A native macOS menu bar app for reviewing Git changes and creating local commits. CommitJet supports selective staging, local branch management, pushing to a configured remote, and optional commit message suggestions from Ollama.
+A native macOS menu bar app for reviewing Git changes and creating local commits. CommitJet supports selective staging, local branch management, fetching and fast-forwarding remote changes, pushing to a configured remote, and optional commit message suggestions from Ollama.
 
 ## Product preview
 
@@ -28,7 +28,7 @@ The app uses SwiftUI `MenuBarExtra` with the native window style and has no Dock
    xcodebuild -project CommitJet.xcodeproj -scheme CommitJet -destination 'platform=macOS' -derivedDataPath /tmp/CommitJetDerived CODE_SIGNING_ALLOWED=NO build
    ```
 
-The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search, create, switch, or delete local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. When a remote can be updated, the main action also offers synchronization or branch publishing. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore confirmations in Settings.
+The app appears in the menu bar. Choose a local Git repository to see its current branch, changed-file count, and an expandable, scrollable list of changed paths and statuses. Select files and use **Stage selected** or **Unstage selected** to manage the Git staging area. Commits and AI message suggestions use staged changes only. Select the branch name to search, create, switch, or delete local branches. Git keeps compatible working-tree changes and blocks a switch if it would overwrite them. Enter a commit message, then select **Commit**. When the tracked remote branch is ahead, choose **Pull remote changes** to fetch and fast-forward the current branch. When local commits are ready, the main action offers synchronization or branch publishing. On the first commit in each repository, confirm that the staged changes should be committed. Select **Don't show again** in that warning to suppress it for future commits; you can restore confirmations in Settings.
 
 ## GitHub releases without Developer ID signing
 
@@ -77,7 +77,7 @@ CommitJet has no telemetry, accounts, or cloud services of its own. It does not 
 
 ## Git behavior and limitations
 
-- CommitJet creates local commits, creates, switches, and deletes local branches, and pushes commits to a configured remote when you select **Sync changes**. For a branch without an upstream, it publishes the branch to the first configured remote. If the local branch is behind its upstream, pushing is blocked and the remote changes must be pulled with another Git client first.
+- CommitJet creates local commits, creates, switches, and deletes local branches, fetches from the configured upstream, and fast-forwards the current branch when it is only behind. If local and remote commits have diverged, or Git cannot safely update the working tree, CommitJet stops and asks you to resolve the situation in another Git client. **Sync changes** pushes local commits to the configured remote; a branch without an upstream is published to the first configured remote.
 - A commit includes only staged changes. Stage selected files to add their current contents to the index, or unstage them to keep those changes out of the commit. The AI suggestion also uses only the staged diff.
 - The first commit in each repository requires confirmation unless you suppress the warning. Changed submodules, unresolved conflicts, and active merge/rebase/cherry-pick/revert/bisect states are refused.
 - Before committing, CommitJet checks that the staged diff still matches the analyzed AI diff.

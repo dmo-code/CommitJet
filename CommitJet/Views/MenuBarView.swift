@@ -47,8 +47,13 @@ struct MenuBarView: View {
                 Spacer(minLength: 0)
                 Button(action: chooseRepository) { Image(systemName: "folder.badge.plus") }
                     .buttonStyle(.borderless).help(t("Choose repository", "Repository auswählen"))
+                    .disabled(model.isWorking)
                 Button(action: refreshRepository) { Image(systemName: "arrow.clockwise") }
                     .buttonStyle(.borderless).help(t("Refresh status", "Status aktualisieren"))
+                    .disabled(model.isWorking || model.repositoryURL == nil)
+                Button(action: fetchRemoteChanges) { Image(systemName: "arrow.down.circle") }
+                    .buttonStyle(.borderless).help(t("Fetch and pull remote changes", "Remote-Änderungen holen und übernehmen"))
+                    .disabled(model.isWorking || model.remoteSyncStatus?.upstream == nil)
             }
 
             Divider()
@@ -101,7 +106,7 @@ struct MenuBarView: View {
         .preferredColorScheme(preferredColorScheme)
         .onAppear {
             ui.updatePanelHeightForCurrentScreen(percent: panelHeightPercent)
-            refreshRepository()
+            Task { await model.refresh() }
         }
         .onChange(of: panelHeightPercent) { value in
             ui.updatePanelHeightForCurrentScreen(percent: value)
@@ -138,6 +143,9 @@ struct MenuBarView: View {
         if model.isCommitting {
             primaryActionButton(title: t("Creating commit…", "Commit wird erstellt …"), icon: "checkmark", isLoading: true) {}
                 .disabled(true)
+        } else if model.isPulling {
+            primaryActionButton(title: t("Fetching and pulling…", "Remote-Änderungen werden geholt …"), icon: "arrow.down.circle", isLoading: true) {}
+                .disabled(true)
         } else if model.isSynchronizing {
             primaryActionButton(title: t("Synchronizing…", "Synchronisieren …"), icon: "arrow.triangle.2.circlepath", isLoading: true) {}
                 .disabled(true)
@@ -148,11 +156,20 @@ struct MenuBarView: View {
         } else if model.canCommit {
             primaryActionButton(title: t("Commit", "Commit erstellen"), icon: "checkmark", isLoading: false, action: confirmAndCommit)
                 .keyboardShortcut(.return, modifiers: .command)
+        } else if let sync = model.remoteSyncStatus, sync.hasRemote, sync.upstream != nil, sync.behindCount > 0 {
+            pullButton
         } else if let sync = model.remoteSyncStatus, canSynchronize(sync) {
             synchronizeButton(for: sync)
         } else {
             inactivePrimaryActionButton
         }
+    }
+
+    private var pullButton: some View {
+        primaryActionButton(title: t("Pull remote changes", "Remote-Änderungen holen"), icon: "arrow.down.circle", isLoading: false) {
+            Task { await model.pullRemoteChanges() }
+        }
+        .help(t("Fetch from the remote and fast-forward this branch when possible", "Änderungen vom Remote holen und diesen Branch wenn möglich per Fast-Forward aktualisieren"))
     }
 
     private func synchronizeButton(for sync: RemoteSyncStatus) -> some View {
@@ -506,6 +523,10 @@ struct MenuBarView: View {
 
     private func refreshRepository() {
         Task { await model.refresh() }
+    }
+
+    private func fetchRemoteChanges() {
+        Task { await model.pullRemoteChanges() }
     }
 
     private func t(_ english: String, _ german: String) -> String {
